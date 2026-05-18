@@ -1,0 +1,12 @@
+@import 'tailwindcss' source(none);
+@source './**/*.{js,ts,jsx,tsx}';
+@import 'tw-animate-css';
+@import './styles/globals.css';
+
+@layer base {
+  html, body, #root { min-height: 100vh; height: 100%; margin: 0; }
+
+  html[lang='zh'] {
+    font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif;
+  }
+}

@@ -1,0 +1,12 @@
+1622 E 88th St, Los Angeles, CA 90002
+1317 W 48th St, Los Angeles, CA 90037
+
+39 Reynolds St, Staten Island, NY 10305
+54 E 15th St, Huntington Station, NY 11746
+125 N Dix Ave, Newburgh, NY 12550
+
+
+1248 Hathaway Dr, Indianapolis, IN 46229
+
+
+{"status":"error","message":"This area is not included in API trials."}

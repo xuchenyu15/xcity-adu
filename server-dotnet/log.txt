@@ -1,0 +1,24 @@
+info: XBuildApi.Lookup.PlanBuilder[0]
+      建筑轮廓输入 features=2
+info: XBuildApi.Lookup.PlanBuilder[0]
+      可建区域输入统计 structures=2 obstaclePolygons=2
+info: XBuildApi.Lookup.PlanBuilder[0]
+      [Buildable] lot @ 0ms: empty=False area=14389.2 geoms=1 env=(0,0)-(76.494,211.684)
+info: XBuildApi.Lookup.PlanBuilder[0]
+      [Buildable] setback-clip edge=0 @ 1ms: empty=False area=13522.405 geoms=1 env=(5,0)-(76.494,211.684)
+info: XBuildApi.Lookup.PlanBuilder[0]
+      [Buildable] setback-clip edge=8 @ 36ms: empty=False area=11927.059 geoms=1 env=(5.118,0)-(76.283,190.291)
+fail: XBuildApi.Controllers.LookupController[0]
+      Lookup pipeline 异常 address=2347 Broadway E, Seattle, WA 98102
+      System.ArgumentException: Operation does not support GeometryCollection arguments (Parameter 'a')
+         at NetTopologySuite.Geometries.GeometryOverlay.CheckNotGeometryCollection(Geometry a, Geometry b)
+         at NetTopologySuite.Geometries.GeometryOverlay.Union(Geometry a, Geometry b)
+         at NetTopologySuite.Geometries.Geometry.Union(Geometry other)
+         at XBuildApi.Lookup.PlanBuilder.<ComputeBuildableGeometry>g__SafeUnion|15_11(Geometry a, Geometry b) in D:\Development\xhomes.ai\server-dotnet\XBuildApi\Lookup\PlanBuilder.cs:line 2310
+         at XBuildApi.Lookup.PlanBuilder.ComputeBuildableGeometry(List`1 lotPolyFt, Double allowedLeft, Double allowedRight, Double allowedTop, Double allowedBottom, List`1 obstaclesWithKind, Double houseSepFt, Double minClearWidthFt, List`1 cutouts, Action`1 trace) in D:\Development\xhomes.ai\server-dotnet\XBuildApi\Lookup\PlanBuilder.cs:line 2433
+         at XBuildApi.Lookup.PlanBuilder.BuildAsync(JsonNode parcelFeature, JsonObject buildingsFc, String siteStreetName, Double frontSetbackFt, Double rearSetbackFt, Double sideSetbackFt, Double houseSepFt, CancellationToken requestAborted) in D:\Development\xhomes.ai\server-dotnet\XBuildApi\Lookup\PlanBuilder.cs:line 1401
+         at XBuildApi.Site.SeattleRegionAdapter.BuildPlanAsync(SiteSubjectData subject, CancellationToken cancellationToken) in D:\Development\xhomes.ai\server-dotnet\XBuildApi\Site\RegionAdapters.cs:line 172
+         at XBuildApi.Controllers.LookupController.RunPipelineAsync(String address, String lang, CancellationToken cancellationToken) in D:\Development\xhomes.ai\server-dotnet\XBuildApi\Controllers\LookupController.cs:line 149
+         at XBuildApi.Controllers.LookupController.LookupAsync(SiteLookupRequest req) in D:\Development\xhomes.ai\server-dotnet\XBuildApi\Controllers\LookupController.cs:line 87
+info: XBuildApi[0]
+      返回响应 status=500 elapsedMs=5835 path=/api/lookup

@@ -1,0 +1,14 @@
+server-dotnet/XBuildApi/appsettings.Development.json
+server-dotnet/XBuildApi/appsettings.*.json
+server-dotnet/XBuildApi/appsettings.json
+**/bin/
+**/obj/
+**/node_modules/
+*.3dm
+*.glb
+*.glbbak
+*.3dmbak
+*.zip
+figma/build/
+.vs
+pnpm-lock.yaml

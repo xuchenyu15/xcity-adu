@@ -1,0 +1,192 @@
+import React, { useState } from 'react';
+import { ArrowRight, Check, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+const models = [
+  {
+    id: 'a495',
+    name: 'Model A495',
+    shortDescription: 'The essential studio suite.',
+    description: 'Compact, efficient, and uncompromising. The A495 is designed for urban density and maximum utility per square foot. Perfect for a guest suite, home office, or rental unit.',
+    specs: [
+      { label: 'Footprint', value: '495 sq ft' },
+      { label: 'Config', value: '1 Bed / 1 Bath' },
+      { label: 'Install', value: '1 Day' },
+    ],
+    price: '$125,000',
+    image: 'https://images.unsplash.com/photo-1615284114808-bf439f965d4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBkYXJrJTIwY29udGFpbmVyJTIwaG9tZSUyMG5pZ2h0JTIwZXh0ZXJpb3J8ZW58MXx8fHwxNzY3NDAyNTc0fDA&ixlib=rb-4.1.0&q=80&w=1080',
+  },
+  {
+    id: 'a955',
+    name: 'Model A955',
+    shortDescription: 'The complete living solution.',
+    description: 'Expansive and versatile. The A955 redefines the ADU with a full-size kitchen, generous living area, and smart storage solutions. A fully independent home for families.',
+    specs: [
+      { label: 'Footprint', value: '955 sq ft' },
+      { label: 'Config', value: '2 Bed / 2 Bath' },
+      { label: 'Install', value: '2 Days' },
+    ],
+    price: '$210,000',
+    image: 'https://images.unsplash.com/photo-1703782997454-8eb0d4d94e9c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcmNoaXRlY3R1cmFsJTIwY2FiaW4lMjBzdGVlbCUyMGdsYXNzJTIwZGFyayUyMGZvcmVzdHxlbnwxfHx8fDE3Njc0MDI1NzR8MA&ixlib=rb-4.1.0&q=80&w=1080',
+  },
+];
+
+export function Catalog({ embedded = false }: { embedded?: boolean }) {
+  const [selectedId, setSelectedId] = useState<string>('a495');
+  const [filter, setFilter] = useState<'all' | 'studio' | '1bed' | '2bed'>('all');
+  
+  const selectedModel = models.find(m => m.id === selectedId) || models[0];
+
+  return (
+    <div id="models" className={`${embedded ? 'h-full' : 'py-24 border-t border-slate-900'} bg-slate-950 overflow-hidden`}>
+      <div className={`container mx-auto px-4 ${embedded ? 'h-full py-8' : ''} max-w-7xl`}>
+        
+        <div className={`flex flex-col md:flex-row gap-12 lg:gap-24 ${embedded ? 'h-full' : ''}`}>
+          
+          {/* Left Column: List & Details */}
+          <div className="w-full md:w-1/3 flex flex-col justify-between">
+            <div className="flex flex-col h-full">
+              <span className="inline-block bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 mb-6 text-xs font-bold tracking-widest uppercase rounded-full w-fit">
+                Online Selection
+              </span>
+              <h2 className="text-4xl font-bold text-white mb-6 tracking-tight">
+                Select Your <span className="text-blue-500">Unit</span>
+              </h2>
+              
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 no-scrollbar">
+                {[
+                  { id: 'all', label: 'All Models' },
+                  { id: 'studio', label: 'Studio' },
+                  { id: '1bed', label: '1 Bed' },
+                  { id: '2bed', label: '2 Bed' },
+                ].map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => setFilter(f.id as any)}
+                    className={`
+                      px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider whitespace-nowrap transition-all border
+                      ${filter === f.id 
+                        ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-900/30' 
+                        : 'bg-slate-900/50 border-slate-800 text-slate-500 hover:text-slate-300 hover:border-slate-700'}
+                    `}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              
+              <div className="space-y-2 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                {models.map((model) => (
+                  <button
+                    key={model.id}
+                    onClick={() => setSelectedId(model.id)}
+                    className={`
+                      w-full text-left p-6 border-l-2 transition-all duration-300 group
+                      ${selectedId === model.id 
+                        ? 'border-white bg-slate-900/50' 
+                        : 'border-slate-800 hover:border-slate-600 hover:bg-slate-900/20'}
+                    `}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className={`text-2xl font-bold tracking-tight ${selectedId === model.id ? 'text-white' : 'text-slate-500 group-hover:text-slate-400'}`}>
+                        {model.name}
+                      </span>
+                      {selectedId === model.id && (
+                        <motion.div layoutId="active-indicator">
+                          <ChevronRight className="w-5 h-5 text-white" />
+                        </motion.div>
+                      )}
+                    </div>
+                    <p className={`mt-2 text-sm ${selectedId === model.id ? 'text-slate-400' : 'text-slate-600'}`}>
+                      {model.shortDescription}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Specs Panel (Desktop only - moves to right on mobile? No, keeping it here is fine) */}
+            <div className="hidden md:block mt-8 space-y-8">
+               <AnimatePresence mode="wait">
+                  <motion.div
+                    key={selectedModel.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <p className="text-slate-400 leading-relaxed mb-8">
+                      {selectedModel.description}
+                    </p>
+
+                    <div className="grid grid-cols-3 gap-4 border-t border-slate-800 pt-6 mb-8">
+                      {selectedModel.specs.map((spec) => (
+                        <div key={spec.label}>
+                          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">{spec.label}</div>
+                          <div className="text-white font-mono">{spec.value}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Starting At</div>
+                        <div className="text-2xl font-bold text-white tracking-tight">{selectedModel.price}</div>
+                      </div>
+                      <button className="inline-flex items-center gap-2 px-6 py-3 bg-white text-slate-950 font-bold hover:bg-slate-200 transition-colors">
+                        Configure
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </motion.div>
+               </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Right Column: Visual */}
+          <div className="w-full md:w-2/3">
+             <div className="relative aspect-[4/3] md:aspect-[16/9] bg-slate-900 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div 
+                    key={selectedModel.id}
+                    className="absolute inset-0"
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.7 }}
+                  >
+                    <img 
+                      src={selectedModel.image} 
+                      alt={selectedModel.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-60" />
+                  </motion.div>
+                </AnimatePresence>
+                
+                {/* Mobile Details Overlay (only visible on mobile) */}
+                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-slate-950 to-transparent md:hidden">
+                    <h3 className="text-3xl font-bold text-white mb-2">{selectedModel.name}</h3>
+                     <p className="text-slate-300 text-sm mb-4 line-clamp-2">{selectedModel.description}</p>
+                     <div className="flex items-center justify-between">
+                        <span className="text-white font-bold">{selectedModel.price}</span>
+                        <button className="p-2 bg-white text-slate-950 rounded-full">
+                          <ArrowRight className="w-5 h-5" />
+                        </button>
+                     </div>
+                </div>
+             </div>
+             
+             {/* Tech Specs Decoration */}
+             <div className="mt-4 flex justify-between items-center text-[10px] text-slate-600 font-mono uppercase tracking-widest">
+                <span>Ref: {selectedModel.id.toUpperCase()}-v2.0</span>
+                <span>Status: Production Ready</span>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}

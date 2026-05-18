@@ -1,0 +1,70 @@
+California
+1622 E 88th St, Los Angeles, CA 90002
+California
+1317 W 48th St, Los Angeles, CA 90037
+
+New York
+39 Reynolds St, Staten Island, NY 10305
+New York
+54 E 15th St, Huntington Station, NY 11746
+New York
+125 N Dix Ave, Newburgh, NY 12550
+
+
+五个目标州：CA · NY· OR · MA · NJ
+
+
+"CA": "https://public.gis.lacounty.gov/public/rest/services/LACounty_Cache/LACounty_Parcel/MapServer/0/query",
+"NY": "https://gisservices.its.ny.gov/arcgis/rest/services/NYS_Tax_Parcels_Public/MapServer/1/query",
+"OR": "https://gis.odf.oregon.gov/ags1/rest/services/WebMercator/TaxlotsDisplay/MapServer/0/query",
+"MA": "https://services1.arcgis.com/hGdibHYSPO59RG1h/arcgis/rest/services/L3_TAXPAR_POLY_ASSESS_gdb/FeatureServer/0/query",
+"NJ": "https://services2.arcgis.com/XVOqAjTOJ5P6ngMu/arcgis/rest/services/Hosted_Parcels_Test_WebMer_20201016/FeatureServer/0/query",
+
+
+
+npx -y skills add obra/superpowers -g -l
+
+npx -y skills add obra/superpowers -g --skill systematic-debugging --skill verification-before-completion --skill requesting-code-review --skill receiving-code-review --skill test-driven-development --agent trae --agent trae-cn -y
+
+
+npx playwright install chromium
+
+
+npm run diff:ui -- --design http://localhost:3000/ --target http://localhost:5173/
+
+
+3419 Latimer St, Dallas, TX 75215
+
+3416 Pondrom St, Dallas, TX 75215  可建
+
+810 21st Ave, Seattle, WA 98122
+336 19th Ave, Seattle, WA 98122
+
+7314 Mace Pl, Los Angeles, CA 90001
+
+660 62nd St, Oakland, CA 94609
+
+109 Brookview Rd, Wilmington, NC 28409
+
+707 20th Ave, Seattle, WA 98122   西雅图
+
+2314 10TH AVE E, SEATTLE, WA, 98102
+
+540 Elliott Ave W, Seattle, WA 98119
+
+6023 44th Ave SW, Seattle, WA 98136  有车库
+
+6026 45th Ave SW, Seattle, WA 98136  有车库
+
+1830 7th Ave W, Seattle, WA 98119   放不下
+
+3112 13th Ave S, Seattle, WA 98144   有车库
+
+6021 45th Ave SW, Seattle, WA 98136   放不下
+7606 45th Ave S, Seattle, WA 98118  放不下  
+
+7749 16th Ave SW, Seattle, WA 98106  存在放不下ADU的可建区域
+
+707 20TH AVE, SEATTLE, WA 98122  无车库
+
+1601 E Boston Terrace, Seattle, WA 98112  不规则地块

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Seed localStorage</title>
+    <style>
+      :root { color-scheme: light; }
+      body { font-family: system-ui, -apple-system, Segoe UI, sans-serif; margin: 0; background: #f8fafc; color: #0f172a; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 24px; }
+      .card { background: rgba(255,255,255,0.92); border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 18px 40px rgba(2,6,23,0.08); overflow: hidden; }
+      header { padding: 16px 18px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      header h1 { font-size: 14px; margin: 0; letter-spacing: 0.02em; font-weight: 800; }
+      header .hint { font-size: 12px; color: #475569; }
+      main { padding: 14px 18px 18px; }
+      textarea { width: 100%; height: 340px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; line-height: 1.45; border: 1px solid #cbd5e1; border-radius: 12px; padding: 12px; resize: vertical; background: #ffffff; color: #0f172a; }
+      .row { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+      button { appearance: none; border: 1px solid #1d4ed8; background: #155dfc; color: #fff; padding: 10px 12px; border-radius: 12px; font-weight: 800; font-size: 12px; cursor: pointer; }
+      button.secondary { border-color: #cbd5e1; background: #fff; color: #0f172a; font-weight: 700; }
+      button:disabled { opacity: 0.6; cursor: not-allowed; }
+      .status { font-size: 12px; color: #475569; }
+      .error { margin-top: 12px; font-size: 12px; color: #b91c1c; white-space: pre-wrap; }
+      .ok { margin-top: 12px; font-size: 12px; color: #047857; white-space: pre-wrap; }
+      .small { font-size: 12px; color: #475569; margin-top: 10px; }
+      a { color: #155dfc; text-decoration: none; font-weight: 700; }
+      a:hover { text-decoration: underline; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <header>
+          <h1>Seed localStorage</h1>
+          <div class="hint">Runs on this origin: <span id="origin"></span></div>
+        </header>
+        <main>
+          <div class="small">
+            Paste a JSON object of key → value (values can be strings/objects/arrays). It will write into localStorage for this origin.
+          </div>
+          <textarea id="input" spellcheck="false"></textarea>
+          <div class="row">
+            <button id="seed">Seed localStorage</button>
+            <button id="clear" class="secondary">Clear keys in JSON</button>
+            <span class="status" id="status"></span>
+          </div>
+          <div class="error" id="error" style="display:none;"></div>
+          <div class="ok" id="ok" style="display:none;"></div>
+          <div class="small">
+            After seeding: <a href="/" id="back">Go back</a>
+          </div>
+        </main>
+      </div>
+    </div>
+    <script>
+      const originEl = document.getElementById('origin');
+      originEl.textContent = window.location.origin;
+      const input = document.getElementById('input');
+      const seedBtn = document.getElementById('seed');
+      const clearBtn = document.getElementById('clear');
+      const statusEl = document.getElementById('status');
+      const errEl = document.getElementById('error');
+      const okEl = document.getElementById('ok');
+      input.value = JSON.stringify({
+        "i18nextLng": "zh",
+        "xhomes.lang": "en",
+        "xhomes.recentAddresses": [],
+        "xhomes.aduPlacement:kc:3076500851": {}
+      }, null, 2);
+      const setStatus = (t) => { statusEl.textContent = t || ''; };
+      const showErr = (t) => { errEl.style.display = 'block'; okEl.style.display = 'none'; errEl.textContent = t; };
+      const showOk = (t) => { okEl.style.display = 'block'; errEl.style.display = 'none'; okEl.textContent = t; };
+      const normalizeEntries = (raw) => {
+        if (raw && typeof raw === 'object' && !Array.isArray(raw)) return raw;
+        throw new Error('Input must be a JSON object: { "key": value, ... }');
+      };
+      seedBtn.addEventListener('click', () => {
+        setStatus('Working…');
+        try {
+          const raw = JSON.parse(input.value);
+          const entries = normalizeEntries(raw);
+          const keys = Object.keys(entries);
+          for (const k of keys) {
+            const v = entries[k];
+            const value = typeof v === 'string' ? v : JSON.stringify(v);
+            localStorage.setItem(k, value);
+          }
+          showOk(`Seeded ${keys.length} keys.\n\n${keys.join('\n')}`);
+          setStatus('');
+        } catch (e) {
+          showErr(String(e && e.stack ? e.stack : e));
+          setStatus('');
+        }
+      });
+      clearBtn.addEventListener('click', () => {
+        setStatus('Working…');
+        try {
+          const raw = JSON.parse(input.value);
+          const entries = normalizeEntries(raw);
+          const keys = Object.keys(entries);
+          for (const k of keys) localStorage.removeItem(k);
+          showOk(`Cleared ${keys.length} keys.\n\n${keys.join('\n')}`);
+          setStatus('');
+        } catch (e) {
+          showErr(String(e && e.stack ? e.stack : e));
+          setStatus('');
+        }
+      });
+    </script>
+  </body>
+</html>

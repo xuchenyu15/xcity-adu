@@ -1,0 +1,1442 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Model1 GLB Viewer</title>
+    <style>
+      :root{
+        --bg0:#0b0b0f;
+        --bg1:#10101a;
+        --panel:#121220;
+        --panel2:#16162a;
+        --text:#e8e7ff;
+        --muted:rgba(232,231,255,.62);
+        --line:rgba(232,231,255,.12);
+        --accent:#79f2c5;
+        --accent2:#9ea8ff;
+        --danger:#ff6b81;
+        --shadow: 0 30px 90px rgba(0,0,0,.45);
+      }
+      html,body{height:100%; margin:0;}
+      body{
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        background:
+          radial-gradient(900px 600px at 20% 10%, rgba(121,242,197,.16), transparent 60%),
+          radial-gradient(1100px 700px at 80% 20%, rgba(158,168,255,.16), transparent 60%),
+          radial-gradient(900px 700px at 50% 90%, rgba(255,107,129,.10), transparent 60%),
+          linear-gradient(180deg, var(--bg0), var(--bg1));
+        color: var(--text);
+        overflow:hidden;
+      }
+      .app{
+        position:relative;
+        height:100%;
+        display:grid;
+        grid-template-columns: 360px 1fr;
+      }
+      .side{
+        position:relative;
+        border-right: 1px solid var(--line);
+        background:
+          linear-gradient(180deg, rgba(18,18,32,.92), rgba(18,18,32,.72));
+        box-shadow: var(--shadow);
+        z-index:2;
+        overflow:hidden;
+      }
+      .side::before{
+        content:"";
+        position:absolute;
+        inset:0;
+        background:
+          repeating-linear-gradient(135deg, rgba(232,231,255,.06) 0, rgba(232,231,255,.06) 1px, transparent 1px, transparent 10px);
+        opacity:.22;
+        pointer-events:none;
+      }
+      .sideInner{
+        position:absolute;
+        inset:0;
+        display:flex;
+        flex-direction:column;
+      }
+      .top{
+        padding:18px 16px 12px;
+        border-bottom:1px solid var(--line);
+        background: linear-gradient(180deg, rgba(22,22,42,.75), rgba(22,22,42,.35));
+      }
+      .title{
+        display:flex;
+        align-items:baseline;
+        gap:10px;
+        letter-spacing:.02em;
+      }
+      .title h1{
+        margin:0;
+        font-size:16px;
+        font-weight:700;
+      }
+      .badge{
+        font-size:11px;
+        padding:4px 8px;
+        border-radius:999px;
+        border:1px solid rgba(121,242,197,.35);
+        color: rgba(121,242,197,.95);
+        background: rgba(121,242,197,.08);
+      }
+      .sub{
+        margin-top:10px;
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+      }
+      .chip{
+        font-size:11px;
+        padding:6px 10px;
+        border-radius:999px;
+        border:1px solid var(--line);
+        color: var(--muted);
+        background: rgba(255,255,255,.03);
+      }
+      .tabs{
+        margin-top:12px;
+        display:flex;
+        gap:8px;
+      }
+      .tabBtn{
+        appearance:none;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.03);
+        color: var(--muted);
+        padding:8px 10px;
+        border-radius:12px;
+        font-size:12px;
+        cursor:pointer;
+        transition: transform .12s ease, border-color .12s ease, color .12s ease, background .12s ease;
+      }
+      .tabBtn[data-active="true"]{
+        border-color: rgba(158,168,255,.45);
+        background: rgba(158,168,255,.08);
+        color: rgba(232,231,255,.92);
+      }
+      .tabBtn:active{ transform: translateY(1px); }
+      .searchRow{
+        margin-top:12px;
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+      }
+      .searchRow input,
+      .searchRow select{
+        flex:1;
+        min-width: 180px;
+        background: rgba(255,255,255,.04);
+        border: 1px solid var(--line);
+        color: rgba(232,231,255,.92);
+        border-radius:12px;
+        padding:10px 12px;
+        font-size:12px;
+        outline:none;
+      }
+      .searchRow select{
+        appearance:none;
+      }
+      .searchRow select option{
+        background: var(--panel);
+        color: rgba(232,231,255,.92);
+      }
+      .searchRow input:focus,
+      .searchRow select:focus{
+        border-color: rgba(121,242,197,.45);
+        box-shadow: 0 0 0 4px rgba(121,242,197,.10);
+      }
+      .btn{
+        appearance:none;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.03);
+        color: rgba(232,231,255,.9);
+        padding:10px 12px;
+        border-radius:12px;
+        font-size:12px;
+        cursor:pointer;
+        transition: transform .12s ease, border-color .12s ease, background .12s ease;
+        white-space:nowrap;
+      }
+      .btn:hover{ border-color: rgba(232,231,255,.22); }
+      .btn:active{ transform: translateY(1px); }
+      .btnPrimary{
+        border-color: rgba(121,242,197,.34);
+        background: rgba(121,242,197,.10);
+      }
+      .list{
+        padding:12px 10px 14px;
+        overflow:auto;
+        flex:1;
+      }
+      .group{
+        margin:10px 6px;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.02);
+        border-radius:14px;
+        overflow:hidden;
+      }
+      .groupHdr{
+        padding:10px 12px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        border-bottom:1px solid var(--line);
+        background: rgba(255,255,255,.02);
+      }
+      .groupHdr .k{
+        font-size:12px;
+        color: rgba(232,231,255,.9);
+      }
+      .groupHdr .v{
+        font-size:11px;
+        color: var(--muted);
+      }
+      .rows{ padding:8px 8px 10px; }
+      .row{
+        display:flex;
+        align-items:center;
+        gap:10px;
+        padding:8px 10px;
+        border-radius:12px;
+        cursor:default;
+        border:1px solid transparent;
+      }
+      .row:hover{
+        border-color: rgba(158,168,255,.22);
+        background: rgba(158,168,255,.05);
+      }
+      .rowActive{
+        border-color: rgba(121,242,197,.42) !important;
+        background: rgba(121,242,197,.08) !important;
+      }
+      .check{
+        width:18px; height:18px;
+        border-radius:6px;
+        border:1px solid var(--line);
+        background: rgba(255,255,255,.02);
+        display:grid;
+        place-items:center;
+        cursor:pointer;
+        flex:0 0 auto;
+      }
+      .check[data-on="true"]{
+        border-color: rgba(121,242,197,.45);
+        background: rgba(121,242,197,.12);
+      }
+      .check svg{ width:12px; height:12px; opacity:0; }
+      .check[data-on="true"] svg{ opacity:1; fill: rgba(121,242,197,.95); }
+      .lbl{
+        min-width:0;
+        flex:1;
+      }
+      .lbl .name{
+        font-size:12px;
+        color: rgba(232,231,255,.92);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .lbl .meta{
+        margin-top:2px;
+        font-size:11px;
+        color: var(--muted);
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
+      }
+      .indent{
+        width: var(--indent, 0px);
+        height: 1px;
+        flex:0 0 auto;
+        opacity:0;
+      }
+      .canvas{
+        position:relative;
+        overflow:hidden;
+      }
+      #c{
+        width:100%;
+        height:100%;
+        display:block;
+      }
+      .hud{
+        position:absolute;
+        left:18px;
+        bottom:18px;
+        padding:12px 12px;
+        border-radius:14px;
+        border:1px solid rgba(232,231,255,.12);
+        background: rgba(16,16,26,.55);
+        backdrop-filter: blur(10px);
+        color: rgba(232,231,255,.88);
+        font-size:12px;
+        line-height:1.4;
+        box-shadow: 0 16px 60px rgba(0,0,0,.25);
+      }
+      .hud strong{ color: rgba(121,242,197,.95); font-weight:700;}
+      .warn{
+        position:absolute;
+        inset:18px 18px auto 18px;
+        padding:12px 14px;
+        border-radius:14px;
+        border:1px solid rgba(255,107,129,.30);
+        background: rgba(255,107,129,.10);
+        color: rgba(255,225,230,.92);
+        font-size:12px;
+        display:none;
+      }
+      .load{
+        position:absolute;
+        inset:auto 18px 18px auto;
+        width: 320px;
+        padding:12px 12px;
+        border-radius:14px;
+        border:1px solid rgba(232,231,255,.12);
+        background: rgba(16,16,26,.55);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 16px 60px rgba(0,0,0,.25);
+        display:none;
+      }
+      .bar{
+        height:10px;
+        border-radius:999px;
+        background: rgba(232,231,255,.08);
+        overflow:hidden;
+        border:1px solid rgba(232,231,255,.10);
+      }
+      .bar > div{
+        height:100%;
+        width:0%;
+        background: linear-gradient(90deg, rgba(121,242,197,.92), rgba(158,168,255,.92));
+      }
+      .load .txt{
+        margin-top:8px;
+        display:flex;
+        justify-content:space-between;
+        color: rgba(232,231,255,.72);
+        font-size:11px;
+      }
+      a{ color: rgba(121,242,197,.95); }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/build/three.module.js",
+          "three/addons/": "./vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="side">
+        <div class="sideInner">
+          <div class="top">
+            <div class="title">
+              <h1>Model1 · <span id="glbTitle">module.glb</span></h1>
+              <div class="badge">Test Viewer</div>
+            </div>
+            <div class="sub">
+              <div class="chip" id="statNodes">Nodes: —</div>
+              <div class="chip" id="statMeshes">Meshes: —</div>
+              <div class="chip" id="statMats">Materials: —</div>
+            </div>
+            <div class="tabs">
+              <button class="tabBtn" id="tabHierarchy" data-active="true">分组 / 节点</button>
+              <button class="tabBtn" id="tabMaterials" data-active="false">材质</button>
+            </div>
+            <div class="searchRow">
+              <input id="q" placeholder="搜索节点或材质名称…" />
+              <button class="btn btnPrimary" id="btnFrame">Frame</button>
+              <button class="btn" id="btnReset">Reset</button>
+              <button class="btn" id="btnSplit">Split</button>
+              <button class="btn" id="btnExport">Export GLB</button>
+            </div>
+            <div class="searchRow">
+              <select id="glbSelect"></select>
+            </div>
+          </div>
+          <div class="list" id="list"></div>
+        </div>
+      </aside>
+      <main class="canvas">
+        <canvas id="c"></canvas>
+        <div class="warn" id="warn"></div>
+        <div class="hud" id="hud">
+          鼠标左键旋转 · 右键平移 · 滚轮缩放<br/>
+          点击对象：定位分组并高亮 · 双击对象：隐藏/显示<br/>
+        </div>
+        <div class="load" id="load">
+          <div class="bar"><div id="bar"></div></div>
+          <div class="txt"><span id="loadLabel">Loading…</span><span id="loadPct">0%</span></div>
+        </div>
+      </main>
+    </div>
+
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+      import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+      const el = {
+        c: document.getElementById('c'),
+        list: document.getElementById('list'),
+        q: document.getElementById('q'),
+        glbTitle: document.getElementById('glbTitle'),
+        glbSelect: document.getElementById('glbSelect'),
+        warn: document.getElementById('warn'),
+        hud: document.getElementById('hud'),
+        load: document.getElementById('load'),
+        bar: document.getElementById('bar'),
+        loadPct: document.getElementById('loadPct'),
+        loadLabel: document.getElementById('loadLabel'),
+        statNodes: document.getElementById('statNodes'),
+        statMeshes: document.getElementById('statMeshes'),
+        statMats: document.getElementById('statMats'),
+        btnFrame: document.getElementById('btnFrame'),
+        btnReset: document.getElementById('btnReset'),
+        btnSplit: document.getElementById('btnSplit'),
+        btnExport: document.getElementById('btnExport'),
+        tabHierarchy: document.getElementById('tabHierarchy'),
+        tabMaterials: document.getElementById('tabMaterials'),
+      };
+
+      if (location.protocol === 'file:') {
+        el.warn.style.display = 'block';
+        el.warn.innerHTML = '';
+      }
+
+      function showRuntimeError(title, err) {
+        try {
+          const msg = (err && (err.message || err.toString())) || 'unknown error';
+          el.warn.style.display = 'block';
+          el.warn.innerHTML = `${title}：${msg}`;
+        } catch {}
+      }
+
+      window.addEventListener('error', (e) => showRuntimeError('运行时错误', e?.error || e?.message), { capture: true });
+      window.addEventListener('unhandledrejection', (e) => showRuntimeError('Promise 错误', e?.reason), { capture: true });
+
+      const renderer = new THREE.WebGLRenderer({ canvas: el.c, antialias: true, alpha: true, powerPreference: 'high-performance', logarithmicDepthBuffer: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.35;
+      renderer.shadowMap.enabled = false;
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b0b0f);
+      scene.fog = null;
+
+      const camera = new THREE.PerspectiveCamera(48, 1, 0.01, 5000);
+      camera.position.set(2.2, 1.4, 2.6);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.rotateSpeed = 0.55;
+      controls.zoomSpeed = 0.9;
+      controls.panSpeed = 0.75;
+
+      const hemi = new THREE.HemisphereLight(0xcbd5ff, 0x0b0b0f, 0.78);
+      scene.add(hemi);
+
+      const amb = new THREE.AmbientLight(0xffffff, 0.28);
+      scene.add(amb);
+
+      const key = new THREE.DirectionalLight(0xffffff, 1.1);
+      key.position.set(4.5, 6.0, 3.0);
+      scene.add(key);
+
+      const rim = new THREE.DirectionalLight(0x9ea8ff, 0.35);
+      rim.position.set(-5.0, 2.4, -3.4);
+      scene.add(rim);
+
+      try {
+        const pmrem = new THREE.PMREMGenerator(renderer);
+        scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      } catch (e) {
+        showRuntimeError('环境光照初始化失败', e);
+      }
+
+      const floor = null;
+      const grid = null;
+
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      let hovered = null;
+      let hoveredOriginal = null;
+      let hoveredTreeUuid = null;
+
+      const hoverMat = new THREE.MeshStandardMaterial({
+        color: 0x79f2c5,
+        roughness: 0.45,
+        metalness: 0.1,
+        emissive: new THREE.Color(0x79f2c5),
+        emissiveIntensity: 0.32,
+        transparent: true,
+        opacity: 0.95
+      });
+
+      let rootObj = null;
+      let meshList = [];
+      let materialList = [];
+      let tab = 'hierarchy';
+      let q = '';
+      let rowByUuid = new Map();
+      let activeRow = null;
+      let selectedObj = null;
+      const ftPerM = 3.280839895013123;
+      const nameOverrides = (() => {
+        try {
+          const raw = localStorage.getItem('model1.nameOverrides');
+          const obj = raw ? JSON.parse(raw) : null;
+          return obj && typeof obj === 'object' ? obj : {};
+        } catch {
+          return {};
+        }
+      })();
+      function saveNameOverrides() {
+        try { localStorage.setItem('model1.nameOverrides', JSON.stringify(nameOverrides)); } catch {}
+      }
+      function displayNameFor(obj) {
+        const ov = nameOverrides[obj.uuid];
+        if (typeof ov === 'string' && ov.trim()) return ov.trim();
+        return obj.name || obj.type || 'Unnamed';
+      }
+
+      const state = {
+        objectVisible: new Map(),
+        materialVisible: new Map(),
+      };
+
+      let currentObjectUrl = null;
+      let currentGlbLabel = 'module.glb';
+
+      const getQueryParam = (k) => {
+        try {
+          const u = new URL(location.href);
+          return u.searchParams.get(k);
+        } catch {
+          return null;
+        }
+      };
+
+      const setQueryParam = (k, v) => {
+        try {
+          const u = new URL(location.href);
+          if (!v) u.searchParams.delete(k);
+          else u.searchParams.set(k, v);
+          history.replaceState(null, '', u.toString());
+        } catch {}
+      };
+
+      function disposeObject3d(obj) {
+        if (!obj) return;
+        obj.traverse((o) => {
+          if (o.isMesh) {
+            if (o.geometry && o.geometry.dispose) o.geometry.dispose();
+            const m = o.material;
+            if (Array.isArray(m)) m.forEach((mm) => mm && mm.dispose && mm.dispose());
+            else if (m && m.dispose) m.dispose();
+          }
+        });
+      }
+
+      function clearCurrentModel() {
+        if (rootObj) {
+          scene.remove(rootObj);
+          disposeObject3d(rootObj);
+        }
+        rootObj = null;
+        meshList = [];
+        materialList = [];
+        rowByUuid = new Map();
+        activeRow = null;
+        selectedObj = null;
+        clearHighlight();
+        state.objectVisible.clear();
+        state.materialVisible.clear();
+        el.list.innerHTML = '';
+        el.statNodes.textContent = 'Nodes: —';
+        el.statMeshes.textContent = 'Meshes: —';
+        el.statMats.textContent = 'Materials: —';
+        el.warn.style.display = 'none';
+      }
+
+      function setViewerTitle(label) {
+        currentGlbLabel = label || 'module.glb';
+        if (el.glbTitle) el.glbTitle.textContent = currentGlbLabel;
+      }
+
+      function resize() {
+        const w = el.c.clientWidth;
+        const h = el.c.clientHeight;
+        renderer.setSize(w, h, false);
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+
+      function setLoadVisible(on) {
+        el.load.style.display = on ? 'block' : 'none';
+      }
+
+      function setLoadProgress(pct, label) {
+        const clamped = Math.max(0, Math.min(1, pct || 0));
+        el.bar.style.width = `${Math.round(clamped * 100)}%`;
+        el.loadPct.textContent = `${Math.round(clamped * 100)}%`;
+        if (label) el.loadLabel.textContent = label;
+      }
+
+      function enumerateScene(root) {
+        const nodes = [];
+        const meshes = [];
+        const mats = new Map();
+        root.traverse((o) => {
+          nodes.push(o);
+          if (o.isMesh) {
+            meshes.push(o);
+            const m = o.material;
+            if (Array.isArray(m)) {
+              for (const mm of m) mats.set(mm.uuid, mm);
+            } else if (m) {
+              mats.set(m.uuid, m);
+            }
+          }
+        });
+        return { nodes, meshes, materials: Array.from(mats.values()) };
+      }
+
+      function applyVisibility() {
+        if (!rootObj) return;
+        for (const o of meshList) {
+          const owner = o;
+          let ownerVisible = true;
+          let cur = owner;
+          while (cur) {
+            if (state.objectVisible.has(cur.uuid) && state.objectVisible.get(cur.uuid) === false) {
+              ownerVisible = false;
+              break;
+            }
+            cur = cur.parent;
+          }
+          let matVisible = true;
+          const m = owner.material;
+          const mats = Array.isArray(m) ? m : (m ? [m] : []);
+          for (const mm of mats) {
+            if (state.materialVisible.has(mm.uuid) && state.materialVisible.get(mm.uuid) === false) {
+              matVisible = false;
+              break;
+            }
+          }
+          owner.visible = ownerVisible && matVisible;
+        }
+      }
+
+      function toggleObjectVisibility(obj) {
+        if (!obj) return;
+        const curVisible = state.objectVisible.has(obj.uuid) ? state.objectVisible.get(obj.uuid) : true;
+        state.objectVisible.set(obj.uuid, !curVisible);
+        applyVisibility();
+        renderList();
+      }
+
+      function setSelected(obj) {
+        if (!obj) return;
+        selectedObj = obj;
+        focusTreeRow(obj);
+
+        const box = new THREE.Box3().setFromObject(obj);
+        if (box.isEmpty()) return;
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const wFt = size.x * ftPerM;
+        const dFt = size.z * ftPerM;
+        const hFt = size.y * ftPerM;
+        const name = displayNameFor(obj);
+        el.hud.innerHTML = `鼠标左键旋转 · 右键平移 · 滚轮缩放<br/>点击对象：定位分组并高亮 · 双击对象：隐藏/显示<br/><strong>${name}</strong><br/>地面投影：${wFt.toFixed(2)} ft × ${dFt.toFixed(2)} ft · 高度：${hFt.toFixed(2)} ft`;
+      }
+
+      function makeCheck(on, onToggle) {
+        const btn = document.createElement('div');
+        btn.className = 'check';
+        btn.dataset.on = on ? 'true' : 'false';
+        btn.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.2 16.6 4.9 12.3l-1.4 1.4 5.7 5.7L20.5 8.1l-1.4-1.4z"/></svg>';
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const next = btn.dataset.on !== 'true';
+          btn.dataset.on = next ? 'true' : 'false';
+          onToggle(next);
+        });
+        return btn;
+      }
+
+      function textMatch(s) {
+        if (!q) return true;
+        return (s || '').toLowerCase().includes(q);
+      }
+
+      function renderHierarchyList() {
+        el.list.innerHTML = '';
+        if (!rootObj) return;
+        rowByUuid = new Map();
+        activeRow = null;
+
+        const wrap = document.createElement('div');
+        const group = document.createElement('div');
+        group.className = 'group';
+        group.innerHTML = '<div class="groupHdr"><div class="k">Scene Graph</div><div class="v">按节点/分组开关</div></div>';
+        const rows = document.createElement('div');
+        rows.className = 'rows';
+
+        const stack = [{ obj: rootObj, depth: 0 }];
+        while (stack.length) {
+          const { obj, depth } = stack.pop();
+          if (!obj) continue;
+
+          const name = displayNameFor(obj);
+          const meshCount = obj.isMesh ? 1 : 0;
+          const childCount = obj.children?.length || 0;
+          const meta = `${obj.type}${meshCount ? ' · Mesh' : ''}${childCount ? ` · children ${childCount}` : ''}`;
+
+          const shouldShow = textMatch(name) || textMatch(meta);
+          if (shouldShow) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            rowByUuid.set(obj.uuid, row);
+            const indent = document.createElement('div');
+            indent.className = 'indent';
+            indent.style.setProperty('--indent', `${Math.min(depth, 10) * 14}px`);
+            row.appendChild(indent);
+
+            const curVisible = state.objectVisible.has(obj.uuid) ? state.objectVisible.get(obj.uuid) : true;
+            const check = makeCheck(curVisible, (next) => {
+              state.objectVisible.set(obj.uuid, next);
+              applyVisibility();
+            });
+            row.appendChild(check);
+
+            const lbl = document.createElement('div');
+            lbl.className = 'lbl';
+            const nameEl = document.createElement('div');
+            nameEl.className = 'name';
+            nameEl.textContent = name;
+            const metaEl = document.createElement('div');
+            metaEl.className = 'meta';
+            metaEl.textContent = meta;
+            lbl.appendChild(nameEl);
+            lbl.appendChild(metaEl);
+            row.appendChild(lbl);
+
+            row.addEventListener('mouseenter', () => highlightObject(obj));
+            row.addEventListener('mouseleave', () => clearHighlight());
+            row.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setSelected(obj);
+            });
+            row.addEventListener('dblclick', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              toggleObjectVisibility(obj);
+            });
+            nameEl.addEventListener('dblclick', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const cur = displayNameFor(obj);
+              const next = prompt('修改名称', cur);
+              if (typeof next !== 'string') return;
+              const v = next.trim();
+              if (!v) {
+                delete nameOverrides[obj.uuid];
+              } else {
+                nameOverrides[obj.uuid] = v;
+              }
+              saveNameOverrides();
+              renderList();
+              if (selectedObj && selectedObj.uuid === obj.uuid) setSelected(obj);
+            });
+            rows.appendChild(row);
+          }
+
+          const children = obj.children || [];
+          for (let i = children.length - 1; i >= 0; i--) {
+            stack.push({ obj: children[i], depth: depth + 1 });
+          }
+        }
+
+        group.appendChild(rows);
+        wrap.appendChild(group);
+        el.list.appendChild(wrap);
+      }
+
+      function renderMaterialsList() {
+        el.list.innerHTML = '';
+        if (!materialList.length) return;
+        const group = document.createElement('div');
+        group.className = 'group';
+        group.innerHTML = '<div class="groupHdr"><div class="k">Materials</div><div class="v">按材质开关</div></div>';
+        const rows = document.createElement('div');
+        rows.className = 'rows';
+
+        for (const m of materialList) {
+          const name = m.name || m.type || m.uuid.slice(0, 8);
+          if (!textMatch(name)) continue;
+
+          const row = document.createElement('div');
+          row.className = 'row';
+
+          const curVisible = state.materialVisible.has(m.uuid) ? state.materialVisible.get(m.uuid) : true;
+          const check = makeCheck(curVisible, (next) => {
+            state.materialVisible.set(m.uuid, next);
+            applyVisibility();
+          });
+          row.appendChild(check);
+
+          const lbl = document.createElement('div');
+          lbl.className = 'lbl';
+          lbl.innerHTML = `<div class="name">${name}</div><div class="meta">${m.type}</div>`;
+          row.appendChild(lbl);
+
+          rows.appendChild(row);
+        }
+
+        group.appendChild(rows);
+        el.list.appendChild(group);
+      }
+
+      function renderList() {
+        if (tab === 'materials') renderMaterialsList();
+        else renderHierarchyList();
+      }
+
+      function setTab(next) {
+        tab = next;
+        el.tabHierarchy.dataset.active = tab === 'hierarchy' ? 'true' : 'false';
+        el.tabMaterials.dataset.active = tab === 'materials' ? 'true' : 'false';
+        renderList();
+      }
+
+      el.tabHierarchy.addEventListener('click', () => setTab('hierarchy'));
+      el.tabMaterials.addEventListener('click', () => setTab('materials'));
+
+      el.q.addEventListener('input', () => {
+        q = (el.q.value || '').trim().toLowerCase();
+        renderList();
+      });
+
+      el.btnReset.addEventListener('click', () => {
+        state.objectVisible.clear();
+        state.materialVisible.clear();
+        applyVisibility();
+        renderList();
+      });
+
+      function refreshSceneIndex() {
+        if (!rootObj) return;
+        const { nodes, meshes, materials } = enumerateScene(rootObj);
+        meshList = meshes;
+        materialList = materials.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        el.statNodes.textContent = `Nodes: ${nodes.length}`;
+        el.statMeshes.textContent = `Meshes: ${meshes.length}`;
+        el.statMats.textContent = `Materials: ${materials.length}`;
+        applyVisibility();
+        renderList();
+      }
+
+      function createIndexedGeometry(geometry) {
+        if (!geometry?.attributes?.position) return null;
+        const pos = geometry.attributes.position;
+        const vertCount = pos.count;
+        if (vertCount < 3) return null;
+        const idx = geometry.index;
+        if (idx && idx.count >= 3) return { index: idx.array, indexItemSize: 1, positionCount: vertCount, indexed: true };
+        const triCount = Math.floor(vertCount / 3);
+        const IndType = vertCount > 65535 ? Uint32Array : Uint16Array;
+        const newIndex = new IndType(triCount * 3);
+        for (let i = 0; i < triCount * 3; i++) newIndex[i] = i;
+        return { index: newIndex, indexItemSize: 1, positionCount: vertCount, indexed: false };
+      }
+
+      function buildSubGeometryFromTriangles(srcGeom, triIndices, srcIndex) {
+        const attrs = srcGeom.attributes;
+        const remap = new Map();
+        const used = [];
+        const outIndex = new (srcIndex.constructor)(triIndices.length * 3);
+        let outI = 0;
+
+        for (let t = 0; t < triIndices.length; t++) {
+          const tri = triIndices[t];
+          const a0 = srcIndex[tri * 3 + 0];
+          const b0 = srcIndex[tri * 3 + 1];
+          const c0 = srcIndex[tri * 3 + 2];
+          const v0 = [a0, b0, c0];
+          for (let k = 0; k < 3; k++) {
+            const oi = v0[k];
+            let ni = remap.get(oi);
+            if (ni === undefined) {
+              ni = used.length;
+              remap.set(oi, ni);
+              used.push(oi);
+            }
+            outIndex[outI++] = ni;
+          }
+        }
+
+        const outGeom = new THREE.BufferGeometry();
+        for (const key of Object.keys(attrs)) {
+          const a = attrs[key];
+          const itemSize = a.itemSize;
+          const SrcType = a.array.constructor;
+          const outArr = new SrcType(used.length * itemSize);
+          for (let i = 0; i < used.length; i++) {
+            const si = used[i] * itemSize;
+            const di = i * itemSize;
+            for (let j = 0; j < itemSize; j++) outArr[di + j] = a.array[si + j];
+          }
+          outGeom.setAttribute(key, new THREE.BufferAttribute(outArr, itemSize, a.normalized));
+        }
+        outGeom.setIndex(new THREE.BufferAttribute(outIndex, 1));
+        outGeom.computeBoundingBox();
+        outGeom.computeBoundingSphere();
+        return outGeom;
+      }
+
+      function splitMeshByConnectedComponents(mesh) {
+        const srcGeom = mesh.geometry;
+        const indexed = createIndexedGeometry(srcGeom);
+        if (!indexed) return null;
+        const srcIndex = indexed.index;
+        const triCount = Math.floor(srcIndex.length / 3);
+        if (triCount <= 1) return null;
+
+        const posCount = srcGeom.attributes.position.count;
+        const vertToTris = new Array(posCount);
+        for (let i = 0; i < posCount; i++) vertToTris[i] = [];
+        for (let t = 0; t < triCount; t++) {
+          const a = srcIndex[t * 3 + 0];
+          const b = srcIndex[t * 3 + 1];
+          const c = srcIndex[t * 3 + 2];
+          if (vertToTris[a]) vertToTris[a].push(t);
+          if (vertToTris[b]) vertToTris[b].push(t);
+          if (vertToTris[c]) vertToTris[c].push(t);
+        }
+
+        const visited = new Uint8Array(triCount);
+        const comps = [];
+        const stack = [];
+
+        for (let start = 0; start < triCount; start++) {
+          if (visited[start]) continue;
+          visited[start] = 1;
+          const comp = [];
+          stack.push(start);
+          while (stack.length) {
+            const t = stack.pop();
+            comp.push(t);
+            const a = srcIndex[t * 3 + 0];
+            const b = srcIndex[t * 3 + 1];
+            const c = srcIndex[t * 3 + 2];
+            const neigh = vertToTris[a].concat(vertToTris[b], vertToTris[c]);
+            for (let i = 0; i < neigh.length; i++) {
+              const nt = neigh[i];
+              if (!visited[nt]) {
+                visited[nt] = 1;
+                stack.push(nt);
+              }
+            }
+          }
+          comps.push(comp);
+        }
+
+        if (comps.length <= 1) return null;
+
+        const parent = mesh.parent;
+        if (!parent) return null;
+
+        const group = new THREE.Group();
+        group.name = `${mesh.name || 'Mesh'}_split`;
+        group.position.copy(mesh.position);
+        group.quaternion.copy(mesh.quaternion);
+        group.scale.copy(mesh.scale);
+        const prevVis = state.objectVisible.has(mesh.uuid) ? state.objectVisible.get(mesh.uuid) : undefined;
+
+        const baseName = mesh.name || 'Part';
+        for (let i = 0; i < comps.length; i++) {
+          const subGeom = buildSubGeometryFromTriangles(srcGeom, comps[i], srcIndex);
+          const part = new THREE.Mesh(subGeom, mesh.material);
+          part.name = `${baseName}_${String(i + 1).padStart(2, '0')}`;
+          part.castShadow = false;
+          part.receiveShadow = false;
+          group.add(part);
+        }
+
+        parent.add(group);
+        parent.remove(mesh);
+        if (prevVis !== undefined) {
+          state.objectVisible.delete(mesh.uuid);
+          state.objectVisible.set(group.uuid, prevVis);
+        }
+        return group;
+      }
+
+      function splitMeshByMaterialGroups(mesh) {
+        const srcGeom = mesh.geometry;
+        const groups = Array.isArray(srcGeom.groups) ? srcGeom.groups : [];
+        const mats = mesh.material;
+        if (!Array.isArray(mats) || groups.length <= 1) return null;
+
+        const indexed = createIndexedGeometry(srcGeom);
+        if (!indexed) return null;
+        const srcIndex = indexed.index;
+        const triCount = Math.floor(srcIndex.length / 3);
+        if (triCount <= 1) return null;
+
+        const parent = mesh.parent;
+        if (!parent) return null;
+
+        const group = new THREE.Group();
+        group.name = `${mesh.name || 'Mesh'}_mat`;
+        group.position.copy(mesh.position);
+        group.quaternion.copy(mesh.quaternion);
+        group.scale.copy(mesh.scale);
+        const prevVis = state.objectVisible.has(mesh.uuid) ? state.objectVisible.get(mesh.uuid) : undefined;
+
+        const baseName = mesh.name || 'Part';
+        let outCount = 0;
+        for (const g of groups) {
+          const start = Math.floor((g.start || 0) / 3);
+          const count = Math.floor((g.count || 0) / 3);
+          if (count <= 0) continue;
+          const triIdx = [];
+          for (let t = start; t < Math.min(start + count, triCount); t++) triIdx.push(t);
+          const subGeom = buildSubGeometryFromTriangles(srcGeom, triIdx, srcIndex);
+          const mat = mats[g.materialIndex ?? 0] ?? mats[0];
+          const part = new THREE.Mesh(subGeom, mat);
+          outCount += 1;
+          part.name = `${baseName}_mat_${String(outCount).padStart(2, '0')}`;
+          part.castShadow = false;
+          part.receiveShadow = false;
+          group.add(part);
+        }
+
+        if (group.children.length <= 1) return null;
+        parent.add(group);
+        parent.remove(mesh);
+        if (prevVis !== undefined) {
+          state.objectVisible.delete(mesh.uuid);
+          state.objectVisible.set(group.uuid, prevVis);
+        }
+        return group;
+      }
+
+      function findSelectedMesh() {
+        if (!selectedObj) return null;
+        if (selectedObj.isMesh) return selectedObj;
+        let first = null;
+        selectedObj.traverse((o) => {
+          if (first) return;
+          if (o.isMesh) first = o;
+        });
+        return first;
+      }
+
+      el.btnSplit.addEventListener('click', () => {
+        const mesh = findSelectedMesh();
+        if (!mesh) return;
+        const matSplit = splitMeshByMaterialGroups(mesh);
+        const group = matSplit || splitMeshByConnectedComponents(mesh);
+        if (!group) return;
+        refreshSceneIndex();
+        setSelected(group);
+      });
+
+      function applyNameOverridesToScene() {
+        if (!rootObj) return;
+        rootObj.traverse((o) => {
+          const v = nameOverrides[o.uuid];
+          if (typeof v === 'string' && v.trim()) o.name = v.trim();
+        });
+      }
+
+      function downloadBlob(blob, fileName) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.rel = 'noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+      }
+
+      el.btnExport.addEventListener('click', async () => {
+        if (!rootObj) return;
+        applyNameOverridesToScene();
+        const exporter = new GLTFExporter();
+        setLoadVisible(true);
+        setLoadProgress(0.1, 'Exporting GLB');
+        try {
+          exporter.parse(
+            rootObj,
+            (result) => {
+              setLoadVisible(false);
+              if (result instanceof ArrayBuffer) {
+                const blob = new Blob([result], { type: 'model/gltf-binary' });
+                const stamp = new Date().toISOString().replaceAll(':', '').replaceAll('.', '');
+                downloadBlob(blob, `module_renamed_${stamp}.glb`);
+                return;
+              }
+              const blob = new Blob([JSON.stringify(result)], { type: 'application/json' });
+              downloadBlob(blob, 'module_renamed.gltf');
+            },
+            (err) => {
+              setLoadVisible(false);
+              showRuntimeError('导出失败', err);
+            },
+            {
+              binary: true,
+              onlyVisible: true,
+              embedImages: true,
+              truncateDrawRange: true
+            }
+          );
+        } catch (e) {
+          setLoadVisible(false);
+          showRuntimeError('导出失败', e);
+        }
+      });
+
+      function frameObject(object3d) {
+        const box = new THREE.Box3().setFromObject(object3d);
+        if (!Number.isFinite(box.min.x) || box.isEmpty()) return;
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+        const maxDim = Math.max(size.x, size.y, size.z);
+        const dist = maxDim / (2 * Math.tan((camera.fov * Math.PI / 180) / 2));
+        const dir = new THREE.Vector3(1, 0.65, 1).normalize();
+        camera.position.copy(center.clone().add(dir.multiplyScalar(dist * 1.08)));
+        camera.near = Math.max(maxDim / 2000, 0.05);
+        camera.far = Math.max(maxDim * 20, 2000);
+        camera.updateProjectionMatrix();
+        controls.target.copy(center);
+        controls.update();
+      }
+
+      el.btnFrame.addEventListener('click', () => {
+        if (rootObj) frameObject(rootObj);
+      });
+
+      function highlightObject(obj) {
+        if (!obj) return;
+        clearHighlight();
+        if (obj.isMesh) {
+          hovered = obj;
+          hoveredOriginal = obj.material;
+          hovered.material = hoverMat;
+          return;
+        }
+        let firstMesh = null;
+        obj.traverse((o) => {
+          if (firstMesh) return;
+          if (o.isMesh) firstMesh = o;
+        });
+        if (firstMesh) {
+          hovered = firstMesh;
+          hoveredOriginal = firstMesh.material;
+          firstMesh.material = hoverMat;
+        }
+      }
+
+      function clearHighlight() {
+        if (hovered && hoveredOriginal) {
+          hovered.material = hoveredOriginal;
+        }
+        hovered = null;
+        hoveredOriginal = null;
+      }
+
+      function focusTreeRow(obj) {
+        if (!obj) return;
+        if (tab !== 'hierarchy') setTab('hierarchy');
+        const row = rowByUuid.get(obj.uuid);
+        if (!row) return;
+        if (hoveredTreeUuid === obj.uuid) return;
+        hoveredTreeUuid = obj.uuid;
+        if (activeRow) activeRow.classList.remove('rowActive');
+        activeRow = row;
+        activeRow.classList.add('rowActive');
+        activeRow.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      }
+
+      function chooseStableHit(hits) {
+        if (!hits.length) return null;
+        if (hovered) {
+          for (let i = 0; i < hits.length; i++) {
+            if (hits[i].object === hovered) return hovered;
+          }
+        }
+        if (selectedObj && selectedObj.isMesh) {
+          for (let i = 0; i < hits.length; i++) {
+            if (hits[i].object === selectedObj) return selectedObj;
+          }
+        }
+        return hits[0].object;
+      }
+
+      function pickAt(clientX, clientY) {
+        if (!rootObj) return null;
+        const rect = el.c.getBoundingClientRect();
+        mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -(((clientY - rect.top) / rect.height) * 2 - 1);
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(meshList, true).filter(h => h?.object?.visible);
+        return chooseStableHit(hits);
+      }
+
+      function onPointerMove(e) {
+        const rect = el.c.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
+      }
+
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      el.c.addEventListener('click', (e) => {
+        const hit = pickAt(e.clientX, e.clientY);
+        if (hit) setSelected(hit);
+      });
+      el.c.addEventListener('dblclick', (e) => {
+        const hit = pickAt(e.clientX, e.clientY);
+        if (hit) toggleObjectVisibility(hit);
+      });
+
+      function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        if (rootObj) {
+          raycaster.setFromCamera(mouse, camera);
+          const hits = raycaster.intersectObjects(meshList, true).filter(h => h?.object?.visible);
+          const top = chooseStableHit(hits);
+          if (top && top !== hovered) highlightObject(top);
+          if (!top && hovered) clearHighlight();
+        }
+        renderer.render(scene, camera);
+      }
+
+      animate();
+
+      const loader = new GLTFLoader();
+      let loadSeq = 0;
+      let activeAbort = null;
+
+      function cancelActiveLoad() {
+        if (activeAbort) {
+          try { activeAbort.abort(); } catch {}
+          activeAbort = null;
+        }
+      }
+
+      async function fetchArrayBufferWithProgress(url, signal, onProgress) {
+        const res = await fetch(url, { signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+        const total = Number(res.headers.get('content-length') || 0);
+        if (!res.body || typeof res.body.getReader !== 'function') {
+          const ab = await res.arrayBuffer();
+          if (onProgress) onProgress(ab.byteLength, total || ab.byteLength, 1);
+          return ab;
+        }
+        const reader = res.body.getReader();
+        let loaded = 0;
+        const chunks = [];
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          loaded += value.byteLength;
+          if (onProgress) onProgress(loaded, total, total > 0 ? loaded / total : 0.12);
+        }
+        const out = new Uint8Array(loaded);
+        let off = 0;
+        for (const c of chunks) {
+          out.set(c, off);
+          off += c.byteLength;
+        }
+        return out.buffer;
+      }
+
+      function basePathFromUrl(url) {
+        const s = String(url || '');
+        const i = s.lastIndexOf('/');
+        if (i >= 0) return s.slice(0, i + 1);
+        return './';
+      }
+
+      async function loadGlb(url, label, { isObjectUrl } = {}) {
+        cancelActiveLoad();
+        const seq = ++loadSeq;
+        const abort = new AbortController();
+        activeAbort = abort;
+        if (currentObjectUrl && currentObjectUrl !== url) {
+          try { URL.revokeObjectURL(currentObjectUrl); } catch {}
+          currentObjectUrl = null;
+        }
+        clearCurrentModel();
+        setViewerTitle(label);
+        if (!isObjectUrl) setQueryParam('glb', label);
+        setLoadVisible(true);
+        setLoadProgress(0, `Loading ${label}`);
+        try {
+          const ab = await fetchArrayBufferWithProgress(url, abort.signal, (loaded, total, pct) => {
+            if (seq !== loadSeq) return;
+            setLoadVisible(true);
+            setLoadProgress(pct, `Loading ${label}`);
+          });
+          if (seq !== loadSeq) return;
+          const path = basePathFromUrl(url);
+          loader.parse(
+            ab,
+            path,
+            (gltf) => {
+              if (seq !== loadSeq) return;
+              rootObj = gltf.scene || gltf.scenes?.[0] || null;
+          if (!rootObj) {
+            setLoadVisible(false);
+            el.warn.style.display = 'block';
+            el.warn.textContent = 'GLB 加载成功，但没有找到 scene。';
+            return;
+          }
+
+          rootObj.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+            }
+          });
+
+          const box = new THREE.Box3().setFromObject(rootObj);
+          if (box.isEmpty()) {
+            setLoadVisible(false);
+            el.warn.style.display = 'block';
+            el.warn.textContent = 'GLB 已加载，但计算到的包围盒为空（可能是压缩/扩展导致的解码缺失，或模型没有可渲染网格）。';
+            return;
+          }
+          scene.add(rootObj);
+          const visBox = new THREE.Box3().setFromObject(rootObj);
+          const visSize = new THREE.Vector3();
+          visBox.getSize(visSize);
+          const center = new THREE.Vector3();
+          visBox.getCenter(center);
+          controls.target.copy(center);
+          controls.update();
+
+          const maxDim = Math.max(visSize.x, visSize.y, visSize.z);
+
+          const { nodes, meshes, materials } = enumerateScene(rootObj);
+          meshList = meshes;
+          materialList = materials.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+          el.statNodes.textContent = `Nodes: ${nodes.length}`;
+          el.statMeshes.textContent = `Meshes: ${meshes.length}`;
+          el.statMats.textContent = `Materials: ${materials.length}`;
+          el.hud.innerHTML = `鼠标左键旋转 · 右键平移 · 滚轮缩放<br/>点击对象：定位分组并高亮 · 双击对象：隐藏/显示<br/><strong>尺寸</strong>：${visSize.x.toFixed(2)} × ${visSize.y.toFixed(2)} × ${visSize.z.toFixed(2)}`;
+
+          applyVisibility();
+          renderList();
+          frameObject(rootObj);
+          setLoadVisible(false);
+            },
+            (err) => {
+              if (seq !== loadSeq) return;
+              setLoadVisible(false);
+              el.warn.style.display = 'block';
+              const msg = (err && (err.message || err.toString())) || 'unknown error';
+              el.warn.innerHTML = `加载失败：${msg}<br/>请确认已通过 http 服务打开，并且同目录下存在 ${label}。`;
+            }
+          );
+        } catch (err) {
+          if (seq !== loadSeq) return;
+          if (err && err.name === 'AbortError') return;
+          setLoadVisible(false);
+          el.warn.style.display = 'block';
+          const msg = (err && (err.message || err.toString())) || 'unknown error';
+          el.warn.innerHTML = `加载失败：${msg}<br/>请确认已通过 http 服务打开，并且同目录下存在 ${label}。`;
+        }
+      }
+
+      const glbOptions = [];
+      const addGlbOption = (opt) => {
+        if (!opt || !opt.value) return;
+        if (glbOptions.some((x) => x.value === opt.value)) return;
+        glbOptions.push(opt);
+      };
+
+      const renderGlbSelect = (preferredValue) => {
+        if (!el.glbSelect) return;
+        el.glbSelect.innerHTML = '';
+        glbOptions.sort((a, b) => (a.label || '').localeCompare(b.label || ''));
+        for (const opt of glbOptions) {
+          const o = document.createElement('option');
+          o.value = opt.value;
+          o.textContent = opt.label;
+          el.glbSelect.appendChild(o);
+        }
+        if (preferredValue && glbOptions.some((x) => x.value === preferredValue)) el.glbSelect.value = preferredValue;
+      };
+
+      const loadFromSelect = async () => {
+        const v = el.glbSelect?.value || '';
+        const opt = glbOptions.find((x) => x.value === v);
+        if (!opt) return;
+        if (opt.kind === 'url') {
+          await loadGlb(opt.url, opt.label, { isObjectUrl: false });
+          return;
+        }
+        if (opt.kind === 'file') {
+          const file = opt.file;
+          if (!file) return;
+          const url = URL.createObjectURL(file);
+          currentObjectUrl = url;
+          setQueryParam('glb', '');
+          await loadGlb(url, file.name, { isObjectUrl: true });
+        }
+      };
+
+      const normalizeUrlForSelect = (raw) => {
+        const s = String(raw || '').trim();
+        if (!s) return { value: 'url:./module.glb', label: 'module.glb', url: './module.glb' };
+        if (/^(https?:)?\/\//i.test(s) || s.startsWith('blob:')) {
+          const parts = s.split('/').filter(Boolean);
+          const label = parts[parts.length - 1] || s;
+          return { value: `url:${s}`, label, url: s };
+        }
+        const url = (s.startsWith('./') || s.startsWith('../') || s.startsWith('/')) ? s : `./${s}`;
+        const parts = url.split('/').filter(Boolean);
+        const label = parts[parts.length - 1] || s;
+        return { value: `url:${url}`, label, url };
+      };
+
+      const initialRaw = getQueryParam('glb') || 'module.glb';
+      const initialOpt = normalizeUrlForSelect(initialRaw);
+      addGlbOption({ kind: 'url', ...initialOpt });
+      addGlbOption({ kind: 'url', value: 'url:./module.glb', label: 'module.glb', url: './module.glb' });
+      addGlbOption({ kind: 'url', value: 'url:./module1.glb', label: 'module1.glb', url: './module1.glb' });
+      renderGlbSelect(initialOpt.value);
+      loadFromSelect();
+
+      el.glbSelect.addEventListener('change', () => { void loadFromSelect(); });
+    </script>
+  </body>
+</html>
