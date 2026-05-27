@@ -1,0 +1,39 @@
+# VCS / IDE
+.git
+.gitignore
+.vs
+.idea
+.vscode
+.DS_Store
+
+# Node / .NET intermediates
+**/node_modules
+**/bin
+**/obj
+figma/build
+
+# Logs
+**/logs
+server-dotnet/XBuildApi/logs
+
+# Local secrets (must be provided as Railway env vars instead)
+server-dotnet/XBuildApi/appsettings.json
+server-dotnet/XBuildApi/appsettings.*.json
+
+# Heavy / unused at runtime
+ADU figma file
+Models
+frontend-demo
+*.docx
+*.zip
+*.3dm
+*.3dmbak
+*.glbbak
+
+# Repo-level extras
+README.md
+第一阶段完成情况说明.md
+测试地址.txt
+regrid测试.txt
+dev.bat
+XBuild_数据规格文档.docx

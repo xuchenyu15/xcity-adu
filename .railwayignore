@@ -1,0 +1,27 @@
+# Heavy reference assets not used by the Dockerfile.
+# Build context only needs ./figma and ./server-dotnet plus the Dockerfile.
+
+ADU figma file/
+Models/
+frontend-demo/
+XBuild_数据规格文档.docx
+
+# Repo housekeeping
+.git/
+.vs/
+.idea/
+.vscode/
+.DS_Store
+
+# Build intermediates
+**/node_modules/
+**/bin/
+**/obj/
+figma/build/
+
+# Logs
+**/logs/
+
+# Local secrets (set as Railway env vars instead)
+server-dotnet/XBuildApi/appsettings.json
+server-dotnet/XBuildApi/appsettings.*.json
