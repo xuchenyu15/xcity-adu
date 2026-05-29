@@ -257,7 +257,7 @@ static class LookupAiParcelInfoHelper
             return (fallback, null);
 
         var addressHintForLog = RedactAddressHint(address, city, state);
-        var addressHintForAi = NormalizeAddressHint(address, city, state);
+        var addressHintForAi = RedactAddressHint(address, city, state);
 
         try
         {
@@ -268,7 +268,7 @@ static class LookupAiParcelInfoHelper
                 "AI 地块信息查询请求 provider={Provider} model={Model} addressHint={AddressHint}",
                 upstream.Provider,
                 upstream.Model,
-                addressHintForAi);
+                addressHintForLog);
 
             var http = httpFactory.CreateClient("ai");
             using var req = new HttpRequestMessage(HttpMethod.Post, upstream.BaseUrl);
@@ -394,7 +394,7 @@ static class LookupAiParcelInfoHelper
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "AI 地块信息查询异常 addressHint={AddressHint}", addressHintForAi);
+            logger.LogWarning(ex, "AI 地块信息查询异常 addressHint={AddressHint}", addressHintForLog);
             return (fallback, null);
         }
     }
