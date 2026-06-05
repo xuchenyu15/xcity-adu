@@ -105,6 +105,7 @@ public sealed class SeattleOfficialLookupProvider : ILookupProvider
 
         var templates = new[]
         {
+        "https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Zoned_Development_Capacity_Layers_2016/FeatureServer/2/query?f=geojson&geometryType=esriGeometryPoint&inSR=4326&geometry={0},{1}&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&resultRecordCount=1",
             "https://gisdata.kingcounty.gov/arcgis/rest/services/OpenDataPortal/property__parcel_area/FeatureServer/439/query?f=geojson&geometryType=esriGeometryPoint&inSR=4326&geometry={0},{1}&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=true&outSR=4326&resultRecordCount=1"
         };
 
