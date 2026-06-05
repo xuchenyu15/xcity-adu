@@ -519,6 +519,7 @@ export function DesignStudio({ onSignOut, buildIntent }: DesignStudioProps) {
         return (
             <ValuePlanner 
                 buildIntent={buildIntent}
+                address={lookup?.request?.address ? String(lookup.request.address) : undefined}
                 onNavigate={(route) => {
                     if (route === 'models') setViewContext('models');
                     if (route === 'how-it-works') setViewContext('services');

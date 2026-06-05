@@ -323,3 +323,52 @@ export function getExitScenarios(inputs: ROIInputs): ExitScenario[] {
 
   return [calc(5), calc(10), calc(20)];
 }
+
+// ─── Address → benchmark area resolution ────────────────────────────────────
+// The user already entered their address upstream; the calculator should not
+// ask again. Map Seattle ZIP codes to the nearest rent-benchmark area, with a
+// citywide average fallback for unmapped ZIPs.
+export const ZIP_TO_NEIGHBORHOOD: Record<string, string> = {
+  '98107': 'Ballard', '98117': 'Ballard',
+  '98103': 'Fremont',
+  '98105': 'U-District', '98115': 'U-District',
+  '98102': 'Capitol Hill', '98112': 'Capitol Hill', '98122': 'Capitol Hill',
+  '98116': 'West Seattle', '98126': 'West Seattle', '98136': 'West Seattle', '98106': 'West Seattle',
+  '98108': 'Beacon Hill', '98144': 'Beacon Hill', '98118': 'Beacon Hill',
+};
+
+export function resolveAreaFromAddress(address?: string | null): { neighborhood: string | null; zip: string | null } {
+  if (!address) return { neighborhood: null, zip: null };
+  const m = String(address).match(/\b981\d{2}\b/);
+  if (!m) return { neighborhood: null, zip: null };
+  return { neighborhood: ZIP_TO_NEIGHBORHOOD[m[0]] ?? null, zip: m[0] };
+}
+
+export interface AddressRentEstimate extends RentEstimate {
+  areaLabel: string;
+}
+
+export function getEstimatedRentForAddress(
+  city: string,
+  address: string | null | undefined,
+  bedroomType: BedroomType,
+  sqft: number,
+): AddressRentEstimate {
+  const { neighborhood } = resolveAreaFromAddress(address);
+  if (neighborhood) {
+    const r = getEstimatedRent(city, neighborhood, bedroomType, sqft);
+    return { ...r, areaLabel: neighborhood };
+  }
+  // Citywide average fallback
+  const rents = SEATTLE_NEIGHBORHOODS
+    .map((a) => getEstimatedRent(city, a, bedroomType, sqft).rent)
+    .filter((r) => r > 0);
+  const avg = rents.length ? Math.round(rents.reduce((sum, r) => sum + r, 0) / rents.length) : 0;
+  return {
+    rent: avg,
+    base: avg,
+    multiplier: 1,
+    explanation: `Based on Seattle citywide ${BEDROOM_LABELS[bedroomType]} Detached ADU benchmark (average of ${rents.length} areas), for a ${sqft} sqft unit.`,
+    areaLabel: 'Seattle (citywide)',
+  };
+}

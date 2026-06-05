@@ -48,6 +48,7 @@ import {
 interface ValuePlannerProps {
   theme?: 'dark' | 'light';
   buildIntent?: 'freeBuild' | 'buyout';
+  address?: string;
   onAction?: () => void;
   onNavigate?: (route: string) => void;
   onComplete?: () => void;
@@ -121,7 +122,7 @@ function LabeledSlider({
   );
 }
 
-export function ValuePlanner({ theme = 'light', buildIntent, onAction, onNavigate, onComplete }: ValuePlannerProps) {
+export function ValuePlanner({ theme = 'light', buildIntent, address, onAction, onNavigate, onComplete }: ValuePlannerProps) {
   // ─── ROI Calculator State ───────────────────────────────────────────────────
   const city = 'Seattle';
   const [neighborhood, setNeighborhood] = useState('Ballard');
@@ -139,6 +140,14 @@ export function ValuePlanner({ theme = 'light', buildIntent, onAction, onNavigat
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [buildPath, setBuildPath] = useState<'freeBuild' | 'buyout'>(buildIntent ?? 'freeBuild');
   const [capitalPerSqft, setCapitalPerSqft] = useState(200);
+
+  // Free Build uses upstream answers: address (entered at start) + design preset module
+  const fbSqft = 600;
+  const fbBedroom: BedroomType = 'oneBed';
+  const fbRentEstimate = useMemo(
+    () => getEstimatedRentForAddress('Seattle', address, fbBedroom, fbSqft),
+    [address],
+  );
 
   // ─── Exit flow state (existing) ────────────────────────────────────────────
   const [buyBackYear, setBuyBackYear] = useState<number | null>(null);
@@ -263,15 +272,12 @@ export function ValuePlanner({ theme = 'light', buildIntent, onAction, onNavigat
 
           {buildPath === 'freeBuild' && (
             <FreeBuildSection
-              neighborhood={neighborhood}
-              setNeighborhood={setNeighborhood}
-              bedroomType={bedroomType}
-              setBedroomType={setBedroomType}
-              sqft={sqft}
-              setSqft={setSqft}
+              address={address}
+              bedroomType={fbBedroom}
+              sqft={fbSqft}
+              rentEstimate={fbRentEstimate}
               capitalPerSqft={capitalPerSqft}
               setCapitalPerSqft={setCapitalPerSqft}
-              rentEstimate={rentEstimate}
               vacancyRatePct={vacancyRatePct}
               managementFeePct={managementFeePct}
               monthlyInsurance={monthlyInsurance}
