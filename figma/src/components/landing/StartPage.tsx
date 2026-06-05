@@ -37,7 +37,7 @@ const JUMP_POINTS = [
   { x: 14, y: 65 }, // San Diego area
 ];
 
-export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onComplete: () => void; onStateChange?: (state: string) => void; shouldFocusInput?: boolean }) {
+export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onComplete: (goal?: string | null) => void; onStateChange?: (state: string) => void; shouldFocusInput?: boolean }) {
   const { t, language } = useI18n();
   const [state, setState] = useState<PageState>('initial');
   const [address, setAddress] = useState('');
@@ -363,7 +363,7 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
 
   const handleSignInSuccess = () => {
     setShowSignInModal(false);
-    onComplete();
+    onComplete(selectedGoal);
   };
 
   useEffect(() => {
@@ -1721,7 +1721,7 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
 
                 {/* Enter Design Studio Button */}
                 <motion.button
-                  onClick={onComplete}
+                  onClick={() => onComplete(selectedGoal)}
                   disabled={!selectedTypology}
                   className={`group relative inline-flex items-center gap-3 px-12 py-5 rounded-2xl font-bold text-lg transition-all ${
                     selectedTypology
