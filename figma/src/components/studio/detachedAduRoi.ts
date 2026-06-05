@@ -142,7 +142,7 @@ export function calcMonthlyPayment(principal: number, annualRate: number, termYe
   return (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
 }
 
-function newtonIRR(cashFlows: number[]): number | null {
+export function newtonIRR(cashFlows: number[]): number | null {
   let rate = 0.1;
   for (let iter = 0; iter < 300; iter++) {
     let npv = 0;

@@ -134,9 +134,10 @@ const EXPRESSIONS = [
 
 interface DesignStudioProps {
   onSignOut: () => void;
+  buildIntent?: 'freeBuild' | 'buyout';
 }
 
-export function DesignStudio({ onSignOut }: DesignStudioProps) {
+export function DesignStudio({ onSignOut, buildIntent }: DesignStudioProps) {
   const [viewContext, setViewContext] = useState<'project' | 'models' | 'services' | 'financing'>('project');
   const [activeTab, setActiveTab] = useState<'overview' | 'site' | 'design' | 'value' | 'permitting' | 'timeline'>('site');
   const { language, setLanguage, t } = useI18n();
@@ -517,6 +518,7 @@ export function DesignStudio({ onSignOut }: DesignStudioProps) {
       case 'value':
         return (
             <ValuePlanner 
+                buildIntent={buildIntent}
                 onNavigate={(route) => {
                     if (route === 'models') setViewContext('models');
                     if (route === 'how-it-works') setViewContext('services');

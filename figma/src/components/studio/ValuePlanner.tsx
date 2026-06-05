@@ -31,6 +31,7 @@ import {
   Cell,
 } from 'recharts';
 import { ExitBuybackModule } from './ExitBuybackModule';
+import { FreeBuildSection } from './FreeBuildSection';
 import { PageTitle, PageSubtitle, SectionTitle, SubsectionLabel, BodyMuted } from './Typography';
 import {
   type BedroomType,
@@ -46,6 +47,7 @@ import {
 
 interface ValuePlannerProps {
   theme?: 'dark' | 'light';
+  buildIntent?: 'freeBuild' | 'buyout';
   onAction?: () => void;
   onNavigate?: (route: string) => void;
   onComplete?: () => void;
@@ -119,7 +121,7 @@ function LabeledSlider({
   );
 }
 
-export function ValuePlanner({ theme = 'light', onAction, onNavigate, onComplete }: ValuePlannerProps) {
+export function ValuePlanner({ theme = 'light', buildIntent, onAction, onNavigate, onComplete }: ValuePlannerProps) {
   // ─── ROI Calculator State ───────────────────────────────────────────────────
   const city = 'Seattle';
   const [neighborhood, setNeighborhood] = useState('Ballard');
@@ -135,6 +137,8 @@ export function ValuePlanner({ theme = 'light', onAction, onNavigate, onComplete
   const [monthlyMaintenance, setMonthlyMaintenance] = useState(200);
   const [rentGrowthRatePct, setRentGrowthRatePct] = useState(0.03);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [buildPath, setBuildPath] = useState<'freeBuild' | 'buyout'>(buildIntent ?? 'freeBuild');
+  const [capitalPerSqft, setCapitalPerSqft] = useState(200);
 
   // ─── Exit flow state (existing) ────────────────────────────────────────────
   const [buyBackYear, setBuyBackYear] = useState<number | null>(null);
@@ -230,6 +234,54 @@ export function ValuePlanner({ theme = 'light', onAction, onNavigate, onComplete
             All calculations are for Detached ADU / DADU — no attached or garage conversion types.
           </BodyMuted>
 
+          {/* Build path toggle: Route B (Free Build) vs Route A (Buyout) */}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setBuildPath('freeBuild')}
+              className={`px-4 py-2.5 rounded-xl text-[13px] font-semibold border transition-colors flex items-center gap-2 ${
+                buildPath === 'freeBuild'
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              Free Build Program · $0 Upfront
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-bold ${
+                buildPath === 'freeBuild' ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-600'
+              }`}>RECOMMENDED</span>
+            </button>
+            <button
+              onClick={() => setBuildPath('buyout')}
+              className={`px-4 py-2.5 rounded-xl text-[13px] font-semibold border transition-colors ${
+                buildPath === 'buyout'
+                  ? 'bg-[#2B7FFF] text-white border-[#2B7FFF]'
+                  : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              Buyout / Self-Funded
+            </button>
+          </div>
+
+          {buildPath === 'freeBuild' && (
+            <FreeBuildSection
+              neighborhood={neighborhood}
+              setNeighborhood={setNeighborhood}
+              bedroomType={bedroomType}
+              setBedroomType={setBedroomType}
+              sqft={sqft}
+              setSqft={setSqft}
+              capitalPerSqft={capitalPerSqft}
+              setCapitalPerSqft={setCapitalPerSqft}
+              rentEstimate={rentEstimate}
+              vacancyRatePct={vacancyRatePct}
+              managementFeePct={managementFeePct}
+              monthlyInsurance={monthlyInsurance}
+              monthlyMaintenance={monthlyMaintenance}
+              rentGrowthRatePct={rentGrowthRatePct}
+              formatCurrency={formatCurrency}
+            />
+          )}
+
+          {buildPath === 'buyout' && (<>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* LEFT: Inputs */}
             <div className="space-y-4">
@@ -620,10 +672,13 @@ export function ValuePlanner({ theme = 'light', onAction, onNavigate, onComplete
               </div>
             </div>
           </div>
+          </>)}
         </div>
 
         <div className="h-px bg-slate-200/60 mb-12" />
 
+        {/* Legacy snapshot + exit timing: superseded. Free Build has its own buyback path; self-funded (cost simulator) has no exit timing. */}
+        {false && (<>
         {/* ─── 2. FINANCIAL SNAPSHOT ─── */}
         <div className="mb-12">
           <div className="flex items-center gap-2 mb-4">
@@ -735,6 +790,8 @@ export function ValuePlanner({ theme = 'light', onAction, onNavigate, onComplete
             roiInputs={roiInputs}
           />
         </div>
+
+        </>)}
 
         {/* ─── 4. INCENTIVE REVIEW SUMMARY ─── */}
         <div className="mb-12">
