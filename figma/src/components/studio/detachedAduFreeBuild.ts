@@ -90,31 +90,25 @@ export function buybackPrice(totalCapital: number, year: number): number {
   return totalCapital * row.factor;
 }
 
-// ─── Loan-like buyback (融资结清逻辑) ────────────────────────────────────────
-// XBuild's deployed capital accrues at `accrualRate` (above inflation); each
-// year XBuild's revenue share pays the balance down. Buying back settles the
-// remaining balance. Early buyback carries a one-time completion premium.
-// Total XBuild take (shares + buyback) is capped at RETURN_CAP_MULTIPLE × X.
+// ─── Asset-value buyback (股权式 · Market Schedule) ─────────────────────────
+// XBuild holds the ADU as an asset. The buyback price is the asset value:
+// delivered capital growing at ASSET_APPRECIATION per year, plus a one-time
+// completion premium. Prices RISE over time — buying earlier locks a lower
+// price. The 1.6x cap applies to XBuild's OPERATING share only; the buyback
+// is an asset sale at market value and sits outside the cap.
+export const ASSET_APPRECIATION = 0.04;   // 4%/yr (tracks construction cost / home value)
+export const COMPLETION_PREMIUM = 0.10;   // Day-1 completion premium
+
 export interface BuybackPoint { year: number; price: number; multiple: number }
 
 export function computeBuybackSchedule(
   totalCapital: number,
-  xbuildYearlyShares: number[],          // XBuild share, year 1..N
-  accrualRate: number,                   // e.g. 0.08
-  completionPremiumPct: number,          // e.g. 0.10 (Day-1 only)
-  capMultiple: number = RETURN_CAP_MULTIPLE,
+  appreciationRate: number = ASSET_APPRECIATION,
+  completionPremiumPct: number = COMPLETION_PREMIUM,
 ): BuybackPoint[] {
-  const out: BuybackPoint[] = [{
-    year: 0,
-    price: Math.round(totalCapital * (1 + completionPremiumPct)),
-    multiple: 1 + completionPremiumPct,
-  }];
-  let cumShare = 0;
-  for (let y = 1; y <= 10; y++) {
-    cumShare += xbuildYearlyShares[y - 1] ?? 0;
-    const accrued = totalCapital * Math.pow(1 + accrualRate, y) - cumShare;
-    const capped = capMultiple * totalCapital - cumShare;
-    const price = Math.max(0, Math.round(Math.min(accrued, capped)));
+  const out: BuybackPoint[] = [];
+  for (let y = 0; y <= 10; y++) {
+    const price = Math.round(totalCapital * (1 + completionPremiumPct) * Math.pow(1 + appreciationRate, y));
     out.push({ year: y, price, multiple: price / totalCapital });
   }
   return out;
