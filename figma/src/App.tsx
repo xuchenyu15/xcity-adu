@@ -13,12 +13,15 @@ import { useI18n } from './i18n';
 export default function App() {
   const { t } = useI18n();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [buildIntent, setBuildIntent] = useState<'freeBuild' | 'buyout'>('freeBuild');
   const [currentRoute, setCurrentRoute] = useState('home');
   const [focusInput, setFocusInput] = useState(false);
   const [startPageState, setStartPageState] = useState('initial');
   const [resetKey, setResetKey] = useState(0);
 
-  const handleSignIn = () => {
+  const handleSignIn = (goal?: string | null) => {
+    // Funnel intent → financial path: 'personal' (owner-funded) vs invest/unsure → Free Build
+    setBuildIntent(goal === 'personal' ? 'buyout' : 'freeBuild');
     setIsAuthenticated(true);
     // Reset to default studio view
     setCurrentRoute('project'); 
@@ -42,7 +45,7 @@ export default function App() {
 
   // Authenticated State (Product Mode)
   if (isAuthenticated) {
-     return <DesignStudio onSignOut={handleSignOut} />;
+     return <DesignStudio onSignOut={handleSignOut} buildIntent={buildIntent} />;
   }
 
   // Unauthenticated State (Marketing Mode)
