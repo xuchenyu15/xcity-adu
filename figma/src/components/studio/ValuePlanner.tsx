@@ -40,6 +40,7 @@ import {
   BEDROOM_DEFAULT_SQFT,
   SEATTLE_NEIGHBORHOODS,
   getEstimatedRent,
+  getEstimatedRentForAddress,
   calculateROI,
   generateCumulativeCashFlows,
   getBedroomComparisonData,
