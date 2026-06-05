@@ -324,6 +324,8 @@ export function getExitScenarios(inputs: ROIInputs): ExitScenario[] {
   return [calc(5), calc(10), calc(20)];
 }
 
+import { SAFMR_FY2026_SEATTLE, SAFMR_SOURCE_LABEL } from './zipRentSafmr';
+
 // ─── Address → benchmark area resolution ────────────────────────────────────
 // The user already entered their address upstream; the calculator should not
 // ask again. Map Seattle ZIP codes to the nearest rent-benchmark area, with a
@@ -339,9 +341,10 @@ export const ZIP_TO_NEIGHBORHOOD: Record<string, string> = {
 
 export function resolveAreaFromAddress(address?: string | null): { neighborhood: string | null; zip: string | null } {
   if (!address) return { neighborhood: null, zip: null };
-  const m = String(address).match(/\b981\d{2}\b/);
-  if (!m) return { neighborhood: null, zip: null };
-  return { neighborhood: ZIP_TO_NEIGHBORHOOD[m[0]] ?? null, zip: m[0] };
+  const matches = String(address).match(/\b\d{5}\b/g);
+  if (!matches || matches.length === 0) return { neighborhood: null, zip: null };
+  const zip = matches[matches.length - 1]; // US addresses end with the ZIP
+  return { neighborhood: ZIP_TO_NEIGHBORHOOD[zip] ?? null, zip };
 }
 
 export interface AddressRentEstimate extends RentEstimate {
@@ -354,12 +357,32 @@ export function getEstimatedRentForAddress(
   bedroomType: BedroomType,
   sqft: number,
 ): AddressRentEstimate {
-  const { neighborhood } = resolveAreaFromAddress(address);
+  const BR_INDEX: Record<BedroomType, number> = { studio: 0, oneBed: 1, twoBed: 2, threeBed: 3 };
+  const BR_HUD_LABEL: Record<BedroomType, string> = { studio: '0BR', oneBed: '1BR', twoBed: '2BR', threeBed: '3BR' };
+  const { neighborhood, zip } = resolveAreaFromAddress(address);
+
+  // Layer 1: HUD SAFMR by ZIP (official, ZIP × bedrooms, annually updated)
+  if (zip && SAFMR_FY2026_SEATTLE[zip]) {
+    const base = SAFMR_FY2026_SEATTLE[zip][BR_INDEX[bedroomType]];
+    const multiplier = getSizeMultiplier(bedroomType, sqft);
+    const rent = Math.round(base * multiplier);
+    const sizeNote = multiplier === 1
+      ? `for a ${sqft} sqft unit`
+      : `adjusted ${multiplier > 1 ? '+' : ''}${Math.round((multiplier - 1) * 100)}% for ${sqft} sqft`;
+    return {
+      rent, base, multiplier,
+      explanation: `Based on ${SAFMR_SOURCE_LABEL} for ZIP ${zip} (${BR_HUD_LABEL[bedroomType]}): $${base.toLocaleString()}/mo, ${sizeNote}.`,
+      areaLabel: neighborhood ?? `ZIP ${zip}`,
+    };
+  }
+
+  // Layer 2: hand-calibrated neighborhood benchmarks
   if (neighborhood) {
     const r = getEstimatedRent(city, neighborhood, bedroomType, sqft);
     return { ...r, areaLabel: neighborhood };
   }
-  // Citywide average fallback
+
+  // Layer 3: citywide average fallback
   const rents = SEATTLE_NEIGHBORHOODS
     .map((a) => getEstimatedRent(city, a, bedroomType, sqft).rent)
     .filter((r) => r > 0);
