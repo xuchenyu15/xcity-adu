@@ -18,6 +18,12 @@ interface ExitBuybackModuleProps {
   INFLATION_RATE: number;
   selectedAdjustments?: { label: string; impact: string }[];
   roiInputs?: ROIInputs;
+  /** Precomputed cumulative income by year (index 0..10). Overrides internal calc. */
+  incomeSeries?: number[];
+  /** Override buyback multipliers (e.g. Free Build schedule with Day-1 premium). */
+  buybackMultipliers?: Record<number, number>;
+  /** Note appended to the chart subtitle (e.g. revenue-share description). */
+  shareNote?: string;
 }
 
 const MAX_YEAR = 10;
@@ -50,7 +56,11 @@ export function ExitBuybackModule({
   INFLATION_RATE,
   selectedAdjustments,
   roiInputs,
+  incomeSeries,
+  buybackMultipliers,
+  shareNote,
 }: ExitBuybackModuleProps) {
+  const MULTIPLIERS = buybackMultipliers ?? BUYBACK_MULTIPLIERS;
   const hasSelection = buyBackYear !== null;
   const year = hasSelection ? Math.min(Math.max(buyBackYear, 0), MAX_YEAR) : null;
   const isLocked = lockState !== 'unlocked';
@@ -62,6 +72,7 @@ export function ExitBuybackModule({
   const RENT_GROWTH = INFLATION_RATE;
 
   const cumulativeData = useMemo(() => {
+    if (incomeSeries && incomeSeries.length >= MAX_YEAR + 1) return incomeSeries.slice(0, MAX_YEAR + 1);
     const data: number[] = [0];
     let cumulative = 0;
     for (let yr = 1; yr <= MAX_YEAR; yr++) {
@@ -70,7 +81,7 @@ export function ExitBuybackModule({
       data.push(Math.round(cumulative));
     }
     return data;
-  }, [monthlyNet, RENT_GROWTH]);
+  }, [incomeSeries, monthlyNet, RENT_GROWTH]);
 
   const estRentData = useMemo(() => {
     const baseMonthlyRent = roiInputs?.monthlyRent ?? 2900;
@@ -85,12 +96,12 @@ export function ExitBuybackModule({
     return getExitScenarios(roiInputs);
   }, [roiInputs]);
 
-  const multiplier = year !== null ? BUYBACK_MULTIPLIERS[year] : 0;
+  const multiplier = year !== null ? MULTIPLIERS[year] : 0;
   const buyBackPrice = year !== null ? Math.round(CONSTRUCTION_COST * multiplier) : 0;
   const incomeEarned = year !== null ? cumulativeData[year] : 0;
   const estRent = year !== null ? estRentData[year] : 0;
 
-  const hoverMultiplier = hoverYear !== null ? BUYBACK_MULTIPLIERS[hoverYear] : 0;
+  const hoverMultiplier = hoverYear !== null ? MULTIPLIERS[hoverYear] : 0;
   const hoverBuyback = hoverYear !== null ? Math.round(CONSTRUCTION_COST * hoverMultiplier) : 0;
 
   const coolingDate = useMemo(() => {
@@ -209,7 +220,7 @@ export function ExitBuybackModule({
         <div className="px-8 pt-8 pb-4">
           <h3 className="text-[20px] font-semibold tracking-tight text-slate-900 mb-2">Asset Growth & Exit Value</h3>
           <p className="text-[14px] font-medium text-slate-500">
-            Cumulative Net Cash Flow (USD) · {(RENT_GROWTH * 100).toFixed(1)}% annual growth
+            Cumulative Net Cash Flow (USD) · {(RENT_GROWTH * 100).toFixed(1)}% annual growth{shareNote ? ` · ${shareNote}` : ''}
           </p>
         </div>
 

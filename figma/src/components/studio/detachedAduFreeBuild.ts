@@ -17,6 +17,8 @@ export interface FreeBuildInputs {
   monthlyInsurance: number;
   monthlyMaintenance: number;
   rentGrowthRatePct: number;  // 0–1 annual
+  /** Owner share per tier [Y1–3, Y4–5, Y6+]; defaults to SPLIT_TIERS values. */
+  ownerTierPcts?: [number, number, number];
 }
 
 export interface SplitTier {
@@ -74,18 +76,48 @@ export interface FreeBuildResults {
   ownerCumulative20: number;
 }
 
-export function ownerShareForYear(year: number, capped: boolean): number {
+export function ownerShareForYear(year: number, capped: boolean, tierPcts?: [number, number, number]): number {
   if (capped) return POST_CAP_OWNER_PCT;
-  const tier = SPLIT_TIERS.find(
-    (t) => year >= t.fromYear && (t.toYear === null || year <= t.toYear),
-  );
-  return tier ? tier.ownerPct : POST_CAP_OWNER_PCT;
+  const pcts = tierPcts ?? [SPLIT_TIERS[0].ownerPct, SPLIT_TIERS[1].ownerPct, SPLIT_TIERS[2].ownerPct];
+  if (year <= 3) return pcts[0];
+  if (year <= 5) return pcts[1];
+  return pcts[2];
 }
 
 export function buybackPrice(totalCapital: number, year: number): number {
   const y = Math.max(0, Math.min(10, Math.round(year)));
   const row = BUYBACK_SCHEDULE.find((r) => r.year === y) ?? BUYBACK_SCHEDULE[BUYBACK_SCHEDULE.length - 1];
   return totalCapital * row.factor;
+}
+
+// ─── Loan-like buyback (融资结清逻辑) ────────────────────────────────────────
+// XBuild's deployed capital accrues at `accrualRate` (above inflation); each
+// year XBuild's revenue share pays the balance down. Buying back settles the
+// remaining balance. Early buyback carries a one-time completion premium.
+// Total XBuild take (shares + buyback) is capped at RETURN_CAP_MULTIPLE × X.
+export interface BuybackPoint { year: number; price: number; multiple: number }
+
+export function computeBuybackSchedule(
+  totalCapital: number,
+  xbuildYearlyShares: number[],          // XBuild share, year 1..N
+  accrualRate: number,                   // e.g. 0.08
+  completionPremiumPct: number,          // e.g. 0.10 (Day-1 only)
+  capMultiple: number = RETURN_CAP_MULTIPLE,
+): BuybackPoint[] {
+  const out: BuybackPoint[] = [{
+    year: 0,
+    price: Math.round(totalCapital * (1 + completionPremiumPct)),
+    multiple: 1 + completionPremiumPct,
+  }];
+  let cumShare = 0;
+  for (let y = 1; y <= 10; y++) {
+    cumShare += xbuildYearlyShares[y - 1] ?? 0;
+    const accrued = totalCapital * Math.pow(1 + accrualRate, y) - cumShare;
+    const capped = capMultiple * totalCapital - cumShare;
+    const price = Math.max(0, Math.round(Math.min(accrued, capped)));
+    out.push({ year: y, price, multiple: price / totalCapital });
+  }
+  return out;
 }
 
 export function calculateFreeBuild(inputs: FreeBuildInputs, horizonYears = 20): FreeBuildResults {
@@ -107,7 +139,7 @@ export function calculateFreeBuild(inputs: FreeBuildInputs, horizonYears = 20): 
     const rentY = inputs.monthlyRent * Math.pow(1 + inputs.rentGrowthRatePct, y - 1);
     const netY = Math.max(0, netForRent(rentY)) * 12;
     const capped = capYear !== null;
-    const oPct = ownerShareForYear(y, capped);
+    const oPct = ownerShareForYear(y, capped, inputs.ownerTierPcts);
     const oInc = netY * oPct;
     const xInc = netY * (1 - oPct);
     ownerCum += oInc;
