@@ -11,25 +11,37 @@ interface OwnerSubmission {
   lat?: number | null; lng?: number | null; createdAt: string;
 }
 
-// Optional Google Street View Static key (set VITE_STREETVIEW_KEY to show real photos).
+// Optional Google Street View Static key (set VITE_STREETVIEW_KEY for street-level photos).
 const SV_KEY = (import.meta as any).env?.VITE_STREETVIEW_KEY || '';
 function streetViewImg(lat?: number | null, lng?: number | null) {
   if (!lat || !lng || !SV_KEY) return null;
   return `https://maps.googleapis.com/maps/api/streetview?size=96x72&location=${lat},${lng}&fov=80&key=${SV_KEY}`;
 }
+// Keyless free aerial thumbnail via Esri World Imagery (no API key required).
+function aerialImg(lat?: number | null, lng?: number | null) {
+  if (!lat || !lng) return null;
+  const d = 0.0006; // ~65m box around the parcel
+  const bbox = `${lng - d},${lat - d},${lng + d},${lat + d}`;
+  return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=${bbox}&bboxSR=4326&size=96,72&format=jpg&f=image`;
+}
 function streetViewLink(lat?: number | null, lng?: number | null) {
   if (!lat || !lng) return null;
   return `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lng}`;
 }
+function mapsLink(lat?: number | null, lng?: number | null) {
+  if (!lat || !lng) return null;
+  return `https://www.google.com/maps?q=${lat},${lng}`;
+}
 const fmtMoney = (n?: number) => (n ? '$' + n.toLocaleString() : '—');
 
 function Photo({ s }: { s: OwnerSubmission }) {
-  const img = streetViewImg(s.lat, s.lng);
-  const link = streetViewLink(s.lat, s.lng);
-  if (img) return <a href={link!} target="_blank" rel="noopener noreferrer"><img src={img} alt="street view" className="w-16 h-12 object-cover rounded-md border border-slate-200" /></a>;
-  if (link) return (
-    <a href={link} target="_blank" rel="noopener noreferrer" className="w-16 h-12 rounded-md border border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400 hover:text-[#2B7FFF] hover:border-slate-300" title="Open Street View">
-      <Home className="w-4 h-4" /><span className="text-[8px] mt-0.5">Street View</span>
+  const sv = streetViewImg(s.lat, s.lng);
+  const aerial = aerialImg(s.lat, s.lng);
+  const link = streetViewLink(s.lat, s.lng) || mapsLink(s.lat, s.lng);
+  const src = sv || aerial; // street view if a key is set, else keyless aerial
+  if (src && link) return (
+    <a href={link} target="_blank" rel="noopener noreferrer" title={sv ? 'Open Street View' : 'Open in Maps'}>
+      <img src={src} alt={sv ? 'street view' : 'aerial'} loading="lazy" className="w-16 h-12 object-cover rounded-md border border-slate-200" />
     </a>
   );
   return <div className="w-16 h-12 rounded-md border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300"><Home className="w-4 h-4" /></div>;
