@@ -4,6 +4,8 @@ import { GlobalHeader } from './components/shared/GlobalHeader';
 import { StartPage } from './components/landing/StartPage';
 import { BrandFeatures } from './components/landing/BrandFeatures';
 import { DesignStudio } from './components/studio/DesignStudio';
+import { AdminView } from './components/studio/AdminView';
+import { SignInModal } from './components/landing/SignInModal';
 import { ModelsPage } from './components/studio/ModelsPage';
 import { ServicesPage } from './components/studio/ServicesPage';
 import { FinanceModule } from './components/studio/FinanceModule';
@@ -13,6 +15,8 @@ import { useI18n } from './i18n';
 export default function App() {
   const { t } = useI18n();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [role, setRole] = useState<'owner' | 'admin'>('owner');
+  const [showSignIn, setShowSignIn] = useState(false);
   const [buildIntent, setBuildIntent] = useState<'freeBuild' | 'buyout'>('freeBuild');
   const [currentRoute, setCurrentRoute] = useState('home');
   const [focusInput, setFocusInput] = useState(false);
@@ -22,9 +26,16 @@ export default function App() {
   const handleSignIn = (goal?: string | null) => {
     // Funnel intent → financial path: 'personal' (owner-funded) vs invest/unsure → Free Build
     setBuildIntent(goal === 'personal' ? 'buyout' : 'freeBuild');
+    setRole('owner');
     setIsAuthenticated(true);
-    // Reset to default studio view
-    setCurrentRoute('project'); 
+    setCurrentRoute('project');
+  };
+
+  const handleAuth = (selectedRole: 'owner' | 'admin') => {
+    setShowSignIn(false);
+    setRole(selectedRole);
+    setIsAuthenticated(true);
+    if (selectedRole === 'owner') setCurrentRoute('project');
   };
 
   const handleSignOut = () => {
@@ -45,6 +56,7 @@ export default function App() {
 
   // Authenticated State (Product Mode)
   if (isAuthenticated) {
+     if (role === 'admin') return <AdminView onSignOut={handleSignOut} />;
      return <DesignStudio onSignOut={handleSignOut} buildIntent={buildIntent} />;
   }
 
@@ -68,13 +80,19 @@ export default function App() {
             }
         }}
         isAuthenticated={false}
-        onSignIn={handleSignIn}
+        onSignIn={() => setShowSignIn(true)}
         onLogoClick={() => {
             setCurrentRoute('home');
             setFocusInput(false);
             setResetKey(prev => prev + 1);
             setStartPageState('initial');
         }}
+      />
+
+      <SignInModal
+        isOpen={showSignIn}
+        onClose={() => setShowSignIn(false)}
+        onSignIn={handleAuth}
       />
 
       <main>
