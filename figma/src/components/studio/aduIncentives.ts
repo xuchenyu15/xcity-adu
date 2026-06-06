@@ -32,6 +32,7 @@ export interface IncentiveProgram {
   url?: string;          // official program page (opened on "Learn More")
   scope: 'national' | 'state' | 'county' | 'city';  // jurisdiction level
   kind: 'financial' | 'program';  // financial = money/savings; program = law/resource/strategy
+  intake?: { fields?: { label: string; type?: 'text' | 'number' }[]; uploadLabel?: string };  // inline eligibility/doc capture
   selected: boolean;
 }
 
@@ -125,7 +126,7 @@ const WA: IncentiveProgram[] = [
       'Property must be owner-occupied in King County',
     ],
     buttonLabel: 'Check Eligibility',
-    buttonVariant: 'outline',
+    buttonVariant: 'primary',
     url: 'https://kingcounty.gov/en/dept/dchs/human-social-services/housing-homeless-services/homeowners-renter-resources/housing-repair',
     scope: 'county',
     selected: false,
@@ -265,11 +266,12 @@ export function mapAiIncentive(raw: any, i = 0): IncentiveProgram {
     statusColor: 'gray',
     description: String(raw?.description ?? '').slice(0, 240),
     actionItems: items,
-    buttonLabel: 'Learn More',
-    buttonVariant: 'outline',
+    buttonLabel: 'Check Eligibility',
+    buttonVariant: 'primary',
     url: typeof raw?.url === 'string' && /^https?:\/\//.test(raw.url) ? raw.url : undefined,
     scope: 'national',
     kind: 'financial',
+    intake: { uploadLabel: 'Upload supporting documents for this program' },
     selected: false,
   };
 }

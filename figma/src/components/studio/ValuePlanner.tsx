@@ -447,26 +447,29 @@ const INCENTIVE_ICON_NODE: Record<string, React.ReactNode> = {
   file: <FileText className="w-5 h-5" />,
 };
 
-function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: IncentivesSectionProps) {
+function IncentivesSection({ incentives }: IncentivesSectionProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([
-    { name: 'Site Survey.pdf', size: '2.4 MB', date: 'Oct 12, 2025' },
-    { name: 'Property Deed.pdf', size: '1.1 MB', date: 'Oct 12, 2025' },
-  ]);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [filesById, setFilesById] = useState<Record<string, UploadedFile[]>>({});
+  const [submitted, setSubmitted] = useState<Record<string, boolean>>({});
+  const pendingUploadId = useRef<string | null>(null);
 
-  const handleUploadClick = () => fileInputRef.current?.click();
+  const triggerUpload = (id: string) => { pendingUploadId.current = id; fileInputRef.current?.click(); };
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const id = pendingUploadId.current;
     const files = e.target.files;
-    if (files) {
-      const newFiles = Array.from(files).map(f => ({
+    if (id && files) {
+      const added = Array.from(files).map(f => ({
         name: f.name,
         size: `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       }));
-      setUploadedFiles(prev => [...prev, ...newFiles]);
+      setFilesById(prev => ({ ...prev, [id]: [...(prev[id] || []), ...added] }));
     }
     e.target.value = '';
   };
+  const removeFile = (id: string, name: string) =>
+    setFilesById(prev => ({ ...prev, [id]: (prev[id] || []).filter(f => f.name !== name) }));
 
   const tagStyles = {
     blue: 'bg-[#2B7FFF]/8 text-[#2B7FFF] border-[#2B7FFF]/15',
@@ -482,37 +485,7 @@ function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: 
 
   return (
     <div className="space-y-6">
-      <div className="p-6 rounded-2xl bg-white border border-slate-200">
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-slate-50 rounded-lg text-slate-500"><FileText className="w-5 h-5" /></div>
-            <div>
-              <span className="text-[14px] font-medium text-slate-900">Project Documents</span>
-              <p className="text-[12px] text-slate-400 mt-0.5">Supporting documents for incentive verification and compliance</p>
-            </div>
-          </div>
-          <button onClick={handleUploadClick} className="px-4 py-2 bg-[#2B7FFF] text-white hover:bg-blue-600 rounded-lg font-medium text-[13px] transition-all flex items-center gap-2 cursor-pointer shadow-sm">
-            <UploadCloud className="w-3.5 h-3.5" /> Upload
-          </button>
-          <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg" multiple onChange={handleFileChange} />
-        </div>
-        {uploadedFiles.length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {uploadedFiles.map((file, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 min-w-[200px]">
-                <div className="p-1.5 bg-white rounded-md border border-slate-200 text-slate-400"><FileText className="w-4 h-4" /></div>
-                <div className="min-w-0">
-                  <p className="text-[13px] font-medium text-slate-800 truncate">{file.name}</p>
-                  <p className="text-[11px] text-slate-400">{file.size} · {file.date}</p>
-                </div>
-                <button onClick={() => setUploadedFiles(prev => prev.filter(f => f.name !== file.name))} className="p-1.5 bg-slate-50 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-500 transition-colors">
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <input ref={fileInputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg" multiple onChange={handleFileChange} />
 
       {renderGroup(incentives.filter((i) => i.kind === 'financial'), 'row')}
 
@@ -526,7 +499,7 @@ function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: 
     </div>
   );
 
-  function renderGroup(items: IncentiveProgram[], layout: 'grid' | 'row') {
+  function renderGroup(items: IncentiveProgram[], _layout: 'grid' | 'row') {
     if (items.length === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-5">
@@ -535,91 +508,139 @@ function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: 
         </div>
       );
     }
+    return <div className="space-y-4">{items.map(Card)}</div>;
+  }
 
-    const Card = (incentive: IncentiveProgram) => {
-      const actionBlock = incentive.actionItems && incentive.actionItems.length > 0 ? (
-        <div>
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Action Required</p>
-          <ul className="space-y-2">
-            {incentive.actionItems.map((item, idx) => (
-              <li key={idx} className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#2B7FFF]/40 mt-[5px] shrink-0" />
-                <span className="text-[12px] text-slate-600 leading-snug">{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null;
+  function Card(incentive: IncentiveProgram) {
+    const isOpen = openId === incentive.id;
+    const hasIntake = !!incentive.intake;
+    const files = filesById[incentive.id] || [];
+    const isSubmitted = !!submitted[incentive.id];
 
-      const statusChip = incentive.statusLabel ? (
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${statusStyles[incentive.statusColor]}`}>
-          {incentive.statusColor === 'emerald' && <CheckCircle2 className="w-3 h-3" />}
-          {incentive.statusColor === 'blue' && <FileText className="w-3 h-3" />}
-          {incentive.statusLabel}
-        </span>
-      ) : null;
+    const actionBlock = incentive.actionItems && incentive.actionItems.length > 0 ? (
+      <div>
+        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Action Required</p>
+        <ul className="space-y-2">
+          {incentive.actionItems.map((item, idx) => (
+            <li key={idx} className="flex items-start gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#2B7FFF]/40 mt-[5px] shrink-0" />
+              <span className="text-[12px] text-slate-600 leading-snug">{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null;
 
-      const button = incentive.buttonVariant === 'primary' ? (
-        <button onClick={handleUploadClick} className="py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm">
-          <Upload className="w-3.5 h-3.5" /> {incentive.buttonLabel}
-        </button>
-      ) : (
-        <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 no-underline">
-          {incentive.buttonLabel} <ExternalLink className="w-3 h-3" />
-        </a>
-      );
+    const statusChip = incentive.statusLabel ? (
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${statusStyles[incentive.statusColor]}`}>
+        {incentive.statusColor === 'emerald' && <CheckCircle2 className="w-3 h-3" />}
+        {incentive.statusColor === 'blue' && <FileText className="w-3 h-3" />}
+        {incentive.statusLabel}
+      </span>
+    ) : null;
 
-      const header = (
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-lg shrink-0 bg-slate-50 text-slate-400">
-            {INCENTIVE_ICON_NODE[incentive.icon] || <Building2 className="w-5 h-5" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-[14px] font-medium text-slate-900">{incentive.title}</h4>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${tagStyles[incentive.tagColor]}`}>
-                {incentive.tag}
-              </span>
+    const button = hasIntake ? (
+      <button
+        onClick={() => setOpenId(isOpen ? null : incentive.id)}
+        className={`py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 ${
+          isOpen ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm'
+        }`}
+      >
+        {isOpen ? 'Close' : incentive.buttonLabel} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+    ) : (
+      <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 no-underline">
+        {incentive.buttonLabel} <ExternalLink className="w-3 h-3" />
+      </a>
+    );
+
+    return (
+      <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+        <div className="p-6 flex flex-col md:flex-row md:items-start gap-5">
+          <div className="md:flex-1 min-w-0">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg shrink-0 bg-slate-50 text-slate-400">
+                {INCENTIVE_ICON_NODE[incentive.icon] || <Building2 className="w-5 h-5" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-[14px] font-medium text-slate-900">{incentive.title}</h4>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${tagStyles[incentive.tagColor]}`}>{incentive.tag}</span>
+                </div>
+                <span className="text-[11px] text-slate-400 uppercase tracking-wider">{incentive.source} · {incentive.amount}</span>
+              </div>
             </div>
-            <span className="text-[11px] text-slate-400 uppercase tracking-wider">{incentive.source} · {incentive.amount}</span>
+            <p className="text-[12px] leading-relaxed text-slate-400 mt-3">{incentive.description}</p>
           </div>
-        </div>
-      );
-
-      if (layout === 'row') {
-        return (
-          <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white p-6 flex flex-col md:flex-row md:items-start gap-5">
-            <div className="md:flex-1 min-w-0">
-              {header}
-              <p className="text-[12px] leading-relaxed text-slate-400 mt-3">{incentive.description}</p>
-            </div>
-            {actionBlock && <div className="md:w-72 md:border-l md:border-slate-100 md:pl-5">{actionBlock}</div>}
-            <div className="md:w-48 flex flex-col gap-3 md:items-end shrink-0">
-              {statusChip}
-              {button}
-            </div>
-          </div>
-        );
-      }
-
-      return (
-        <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white flex flex-col overflow-hidden">
-          <div className="p-6 pb-0">
-            {header}
-            <p className="text-[12px] leading-relaxed text-slate-400 mt-3 mb-4">{incentive.description}</p>
-          </div>
-          {actionBlock && <div className="px-6 pb-0"><div className="border-t border-slate-100 pt-4">{actionBlock}</div></div>}
-          <div className="p-6 pt-4 mt-auto">
-            {statusChip && <div className="mb-3">{statusChip}</div>}
-            <div className="[&>*]:w-full">{button}</div>
+          {actionBlock && <div className="md:w-72 md:border-l md:border-slate-100 md:pl-5">{actionBlock}</div>}
+          <div className="md:w-48 flex flex-col gap-3 md:items-end shrink-0">
+            {statusChip}
+            {button}
           </div>
         </div>
-      );
-    };
 
-    if (layout === 'row') {
-      return <div className="space-y-4">{items.map(Card)}</div>;
-    }
-    return <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{items.map(Card)}</div>;
+        {isOpen && hasIntake && (
+          <div className="border-t border-slate-100 p-6 bg-slate-50/50">
+            {isSubmitted ? (
+              <div className="flex items-center gap-2 text-[13px] text-emerald-600 font-medium">
+                <CheckCircle2 className="w-4 h-4" /> Submitted for review — we’ll confirm your eligibility for {incentive.title}.
+              </div>
+            ) : (
+              <>
+                <p className="text-[13px] font-semibold text-slate-700 mb-1">Check eligibility for {incentive.title}</p>
+                <p className="text-[12px] text-slate-400 mb-4">
+                  Provide the details and documents this program requires. {incentive.url && (
+                    <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="text-[#2B7FFF] no-underline">View official program ↗</a>
+                  )}
+                </p>
+
+                {incentive.intake?.fields && incentive.intake.fields.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    {incentive.intake.fields.map((f, idx) => (
+                      <div key={idx}>
+                        <label className="block text-[12px] text-slate-500 mb-1">{f.label}</label>
+                        <input type={f.type || 'text'} className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-[13px] text-slate-700" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[12px] text-slate-500">{incentive.intake?.uploadLabel || 'Upload supporting documents'}</label>
+                    <button onClick={() => triggerUpload(incentive.id)} className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer">
+                      <UploadCloud className="w-3.5 h-3.5" /> Upload
+                    </button>
+                  </div>
+                  {files.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {files.map((file, i) => (
+                        <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200 min-w-[180px]">
+                          <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[12px] font-medium text-slate-700 truncate">{file.name}</p>
+                            <p className="text-[10px] text-slate-400">{file.size} · {file.date}</p>
+                          </div>
+                          <button onClick={() => removeFile(incentive.id, file.name)} className="p-1 rounded-full text-slate-400 hover:bg-slate-100"><X className="w-3 h-3" /></button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[12px] text-slate-400">No documents uploaded yet.</p>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setSubmitted(prev => ({ ...prev, [incentive.id]: true }))}
+                  className="py-2.5 px-5 rounded-xl font-medium text-[13px] bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm cursor-pointer"
+                >
+                  Submit for Review
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 }
