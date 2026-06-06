@@ -6,10 +6,11 @@ import { useI18n } from '../../i18n';
 interface SignInModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSignIn: () => void;
+  onSignIn: (role: 'owner' | 'admin') => void;
+  showRole?: boolean;
 }
 
-export function SignInModal({ isOpen, onClose, onSignIn }: SignInModalProps) {
+export function SignInModal({ isOpen, onClose, onSignIn, showRole = true }: SignInModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -23,16 +24,16 @@ export function SignInModal({ isOpen, onClose, onSignIn }: SignInModalProps) {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      onSignIn();
+      onSignIn(email.toLowerCase().endsWith('@xhomes.us') ? 'admin' : 'owner');
     }, 1000);
   };
 
   const handleSocialLogin = (provider: string) => {
     setIsLoading(true);
-    // Simulate social login
+    // Simulate social login (no email captured) → default to owner
     setTimeout(() => {
       setIsLoading(false);
-      onSignIn();
+      onSignIn('owner');
     }, 1000);
   };
 

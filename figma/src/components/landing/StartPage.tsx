@@ -361,8 +361,27 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
 
   const [showEarnModal, setShowEarnModal] = useState(false);
 
+  const postSubmission = () => {
+    try {
+      const zipMatch = String(address).match(/\b\d{5}\b/g);
+      const base = (import.meta as any).env?.VITE_API_BASE_URL ?? '';
+      fetch(`${base}/api/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: userEmail || null,
+          address: address || feasibilityLookup?.request?.address || null,
+          zip: zipMatch ? zipMatch[zipMatch.length - 1] : null,
+          goal: selectedGoal || null,
+          financialPath: selectedGoal === 'personal' ? 'buyout' : 'freeBuild',
+        }),
+      }).catch(() => {});
+    } catch { /* non-blocking */ }
+  };
+
   const handleSignInSuccess = () => {
     setShowSignInModal(false);
+    postSubmission();
     onComplete(selectedGoal);
   };
 
@@ -1721,7 +1740,7 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
 
                 {/* Enter Design Studio Button */}
                 <motion.button
-                  onClick={() => onComplete(selectedGoal)}
+                  onClick={() => { postSubmission(); onComplete(selectedGoal); }}
                   disabled={!selectedTypology}
                   className={`group relative inline-flex items-center gap-3 px-12 py-5 rounded-2xl font-bold text-lg transition-all ${
                     selectedTypology
@@ -1833,6 +1852,7 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
         isOpen={showSignInModal} 
         onClose={() => setShowSignInModal(false)}
         onSignIn={handleSignInSuccess}
+        showRole={false}
       />
 
       <EarnModal 
