@@ -73,6 +73,7 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<OsmBuildingsService>();
 builder.Services.AddSingleton<AiAduPlanner>();
 builder.Services.AddSingleton<XBuildApi.Incentives.IncentiveResearchService>();
+builder.Services.AddSingleton<XBuildApi.Submissions.SubmissionStore>();
 builder.Services.AddSingleton<PlanBuilder>();
 builder.Services.AddSingleton<SeattleOfficialLookupProvider>();
 builder.Services.AddSingleton<NewYorkOfficialLookupProvider>();
