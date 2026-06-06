@@ -18,15 +18,21 @@ public sealed class SubmissionsController : ControllerBase
         public string? Goal { get; set; }
         public string? FinancialPath { get; set; }
         public int? RentEstimate { get; set; }
+        public bool? Feasible { get; set; }
+        public string? Zoning { get; set; }
+        public string? LotArea { get; set; }
+        public int? ExistingUnits { get; set; }
+        public string? RecommendedAdu { get; set; }
     }
 
-    // Owner funnel posts here when an address-based session is created.
+    // Owner funnel posts here after the address + feasibility check.
     [HttpPost]
     public IActionResult Post([FromBody] SubmissionInput input)
     {
         if (input is null || (string.IsNullOrWhiteSpace(input.Address) && string.IsNullOrWhiteSpace(input.Email)))
             return BadRequest(new { code = 400, msg = "address or email required" });
-        var s = _store.Add(input.Email, input.Address, input.Zip, input.Goal, input.FinancialPath, input.RentEstimate);
+        var s = _store.Add(input.Email, input.Address, input.Zip, input.Goal, input.FinancialPath, input.RentEstimate,
+            input.Feasible, input.Zoning, input.LotArea, input.ExistingUnits, input.RecommendedAdu);
         return Ok(new { code = 200, id = s.Id });
     }
 
