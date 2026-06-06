@@ -488,8 +488,25 @@ function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: 
         )}
       </div>
 
+      {renderGroup(incentives.filter((i) => i.kind === 'financial'))}
+
+      {incentives.some((i) => i.kind === 'program') && (
+        <div className="mt-8">
+          <p className="text-[13px] font-semibold text-slate-500 mb-1">Programs & Resources</p>
+          <p className="text-[12px] text-slate-400 mb-4">Not cash incentives, but laws, design programs, and rental options that lower your cost or risk.</p>
+          {renderGroup(incentives.filter((i) => i.kind === 'program'))}
+        </div>
+      )}
+    </div>
+  );
+
+  function renderGroup(items: IncentiveProgram[]) {
+    if (items.length === 0) {
+      return <p className="text-[12px] text-slate-400 py-2">No cash incentives confirmed for this address yet — we’ll follow up if any apply.</p>;
+    }
+    return (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {incentives.map((incentive) => (
+        {items.map((incentive) => (
             <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white flex flex-col overflow-hidden">
               <div className="p-6 pb-0">
                 <div className="flex items-start gap-3 mb-3">
@@ -546,6 +563,6 @@ function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: 
             </div>
         ))}
       </div>
-    </div>
-  );
+    );
+  }
 }

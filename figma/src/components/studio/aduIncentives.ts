@@ -31,12 +31,14 @@ export interface IncentiveProgram {
   buttonVariant: 'primary' | 'outline';
   url?: string;          // official program page (opened on "Learn More")
   scope: 'national' | 'state' | 'county' | 'city';  // jurisdiction level
+  kind: 'financial' | 'program';  // financial = money/savings; program = law/resource/strategy
   selected: boolean;
 }
 
 const WA: IncentiveProgram[] = [
   {
     id: 'wa-hb1337',
+    kind: 'program',
     title: 'HB 1337 ADU Reform',
     source: 'WA State (RCW 36.70A.696)',
     amount: 'Impact fee ≤ 50% of main home',
@@ -60,6 +62,7 @@ const WA: IncentiveProgram[] = [
   },
   {
     id: 'seattle-aduniverse',
+    kind: 'program',
     title: 'Pre-Approved DADU Plans',
     source: 'Seattle OPCD · ADUniverse',
     amount: 'Free plans · permit in 2–6 weeks',
@@ -82,6 +85,7 @@ const WA: IncentiveProgram[] = [
   },
   {
     id: 'sect8',
+    kind: 'program',
     title: 'Housing Choice Voucher',
     source: 'Seattle / King County Housing Authority',
     amount: 'Guaranteed market-rate rent',
@@ -105,6 +109,7 @@ const WA: IncentiveProgram[] = [
   },
   {
     id: 'kc-repair',
+    kind: 'financial',
     title: 'Homeowner Repair Loan',
     source: 'King County DCHS',
     amount: 'Deferred / low-interest loan',
@@ -131,6 +136,7 @@ const WA: IncentiveProgram[] = [
 const NATIONAL: IncentiveProgram[] = [
   {
     id: 'sect8',
+    kind: 'program',
     title: 'Housing Choice Voucher',
     source: 'Local Housing Authority',
     amount: 'Guaranteed market-rate rent',
@@ -154,6 +160,7 @@ const NATIONAL: IncentiveProgram[] = [
   },
   {
     id: 'local-fee',
+    kind: 'financial',
     title: 'Local ADU Programs',
     source: 'City / County Planning',
     amount: 'Varies by jurisdiction',
