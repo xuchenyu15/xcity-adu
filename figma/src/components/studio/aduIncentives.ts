@@ -198,7 +198,7 @@ const SEATTLE_CITY_ZIPS = new Set([
   '98134','98136','98144','98146','98154','98164','98174','98177','98178','98195','98199',
 ]);
 
-export interface Jurisdiction { state: string | null; county: string | null; city: string | null; }
+export interface Jurisdiction { state: string | null; county: string | null; city: string | null; zip: string | null; }
 
 export function resolveJurisdiction(zip?: string | null, address?: string | null): Jurisdiction {
   let z = zip ?? null;
@@ -206,7 +206,7 @@ export function resolveJurisdiction(zip?: string | null, address?: string | null
     const m = String(address).match(/\b\d{5}\b(?=(?:-\d{4})?\s*$)/) || String(address).match(/\b\d{5}\b/g)?.slice(-1);
     z = Array.isArray(m) ? m[0] : (m ? m[0] : null);
   }
-  if (!z) return { state: null, county: null, city: null };
+  if (!z) return { state: null, county: null, city: null, zip: null };
 
   // King County / Seattle metro: any ZIP present in the SAFMR Seattle table.
   if (SAFMR_FY2026_SEATTLE[z]) {
@@ -214,10 +214,11 @@ export function resolveJurisdiction(zip?: string | null, address?: string | null
       state: 'WA',
       county: 'King',
       city: SEATTLE_CITY_ZIPS.has(z) ? 'Seattle' : null,
+      zip: z,
     };
   }
-  if (/^98\d{3}$/.test(z) || /^99\d{3}$/.test(z)) return { state: 'WA', county: null, city: null };
-  return { state: null, county: null, city: null };
+  if (/^98\d{3}$/.test(z) || /^99\d{3}$/.test(z)) return { state: 'WA', county: null, city: null, zip: z };
+  return { state: null, county: null, city: null, zip: z };
 }
 
 const STATE_PROGRAMS: Record<string, IncentiveProgram[]> = {
@@ -243,4 +244,32 @@ export function getIncentivesForAddress(address?: string | null, zip?: string | 
   // de-dup by id, fresh copies for per-session selection
   const seen = new Set<string>();
   return { jurisdiction: j, programs: out.filter((p) => !seen.has(p.id) && seen.add(p.id)).map((p) => ({ ...p })) };
+}
+
+// Map a raw AI-researched program into the IncentiveProgram card shape.
+// AI cards are flagged so the UI can badge them "AI-sourced · pending review".
+export function mapAiIncentive(raw: any, i = 0): IncentiveProgram {
+  const items = Array.isArray(raw?.actionItems)
+    ? raw.actionItems.filter((x: any) => typeof x === 'string').slice(0, 4)
+    : [];
+  return {
+    id: `ai-${i}-${String(raw?.title ?? 'program').toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 24)}`,
+    title: String(raw?.title ?? 'Program').slice(0, 60),
+    source: String(raw?.source ?? 'Local agency').slice(0, 80),
+    amount: String(raw?.amount ?? 'Varies').slice(0, 60),
+    impactLabel: 'Financial',
+    icon: 'building',
+    tag: String(raw?.tag ?? 'AI-sourced').slice(0, 28),
+    tagColor: 'blue',
+    statusLabel: 'AI-sourced · pending review',
+    statusColor: 'gray',
+    description: String(raw?.description ?? '').slice(0, 240),
+    actionItems: items,
+    buttonLabel: 'Learn More',
+    buttonVariant: 'outline',
+    url: typeof raw?.url === 'string' && /^https?:\/\//.test(raw.url) ? raw.url : undefined,
+    scope: 'national',
+    kind: 'financial',
+    selected: false,
+  };
 }

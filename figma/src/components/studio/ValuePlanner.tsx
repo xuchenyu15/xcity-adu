@@ -33,7 +33,7 @@ import {
 import { ExitBuybackModule } from './ExitBuybackModule';
 import { FreeBuildSection } from './FreeBuildSection';
 import { SelfFundedSection } from './SelfFundedSection';
-import { getIncentivesForAddress, type IncentiveProgram } from './aduIncentives';
+import { getIncentivesForAddress, resolveJurisdiction, mapAiIncentive, type IncentiveProgram } from './aduIncentives';
 import { PageTitle, PageSubtitle, SectionTitle, SubsectionLabel, BodyMuted } from './Typography';
 import {
   type BedroomType,
@@ -162,7 +162,33 @@ export function ValuePlanner({ theme = 'light', buildIntent, address, onAction, 
     () => getIncentivesForAddress(address).programs,
   );
   React.useEffect(() => {
-    setIncentives(getIncentivesForAddress(address).programs);
+    const { jurisdiction, programs } = getIncentivesForAddress(address);
+    setIncentives(programs);
+    // For jurisdictions not in the curated table, ask the backend AI research
+    // layer for real financial incentives (no-op until an AI key is configured).
+    const uncovered = !jurisdiction.state;
+    if (!uncovered) return;
+    let cancelled = false;
+    const j = resolveJurisdiction(null, address);
+    const qs = new URLSearchParams();
+    if (j.state) qs.set('state', j.state);
+    if (j.county) qs.set('county', j.county);
+    if (j.city) qs.set('city', j.city);
+    if (j.zip) qs.set('zip', j.zip);
+    const base = (import.meta as any).env?.VITE_API_BASE_URL ?? '';
+    fetch(`${base}/api/incentives?${qs.toString()}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (cancelled || !data || data.source !== 'ai' || !Array.isArray(data.programs) || data.programs.length === 0) return;
+        const aiCards = data.programs.map(mapAiIncentive);
+        setIncentives((prev) => {
+          const generic = new Set(['local-fee']);
+          const kept = prev.filter((p) => !generic.has(p.id));
+          return [...aiCards, ...kept];
+        });
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
   }, [address]);
 
   const toggleIncentive = (id: string) => setIncentives(prev => prev.map(i => i.id === id ? { ...i, selected: !i.selected } : i));
@@ -237,14 +263,14 @@ export function ValuePlanner({ theme = 'light', buildIntent, address, onAction, 
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
-            <SectionTitle>Detached ADU ROI Calculator</SectionTitle>
+            <SectionTitle>Detached ADU Financial Terms</SectionTitle>
             <span className="px-2.5 py-0.5 rounded-full bg-[#2B7FFF]/10 text-[#2B7FFF] text-[11px] font-semibold border border-[#2B7FFF]/20 flex items-center gap-1">
               <Home className="w-3 h-3" /> Detached ADU Only
             </span>
           </div>
           <BodyMuted className="mt-1 mb-6">
-            Enter your project details to calculate estimated rental income, monthly cash flow, payback period, and IRR.
-            All calculations are for Detached ADU / DADU — no attached or garage conversion types.
+            Your financing path, projected income, and available incentives — derived from your address and design.
+            All figures are for a Detached ADU / DADU.
           </BodyMuted>
 
           {/* Build path toggle: Route B (Free Build) vs Route A (Buyout) */}

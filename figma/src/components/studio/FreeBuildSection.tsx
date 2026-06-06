@@ -122,21 +122,27 @@ export function FreeBuildSection(props: FreeBuildSectionProps) {
           <div>
             <SubsectionLabel className="mb-3">Capital Breakdown</SubsectionLabel>
             <div className="space-y-2">
-              {CAPITAL_ITEMS.map((it) => (
-                <div key={it.label} className="flex justify-between items-center py-1">
-                  <span className="text-[13px] text-slate-500">{it.label}</span>
-                  <span className="text-[13px] font-bold tabular-nums text-slate-700">
-                    {formatCurrency(Math.round(fb.totalCapital * it.ratio / 1000) * 1000)}
-                  </span>
-                </div>
-              ))}
+              {CAPITAL_ITEMS.map((it, idx) => {
+                // Round each line to the nearest $1k; last item absorbs the
+                // remainder so the breakdown always sums to Total Delivered Investment.
+                const rounded = CAPITAL_ITEMS.map((c) => Math.round(fb.totalCapital * c.ratio / 1000) * 1000);
+                const amount = idx === CAPITAL_ITEMS.length - 1
+                  ? fb.totalCapital - rounded.slice(0, -1).reduce((s, x) => s + x, 0)
+                  : rounded[idx];
+                return (
+                  <div key={it.label} className="flex justify-between items-center py-1">
+                    <span className="text-[13px] text-slate-500">{it.label}</span>
+                    <span className="text-[13px] font-bold tabular-nums text-slate-700">{formatCurrency(amount)}</span>
+                  </div>
+                );
+              })}
             </div>
             <div className="mt-3 pt-3 border-t border-slate-100 flex justify-between items-baseline">
               <span className="text-[12px] text-slate-500">Total Delivered Investment</span>
               <span className="text-[13px] font-bold tabular-nums text-slate-700">${capitalPerSqft}/sqft · {formatCurrency(fb.totalCapital)}</span>
             </div>
             <BodyMuted className="mt-2 text-[11px]">
-              Capital fully funded by XBuild. Buyback based on deployed capital.
+              Capital fully funded by XBuild. Buyback is a market-value asset sale (see Exit Timing).
             </BodyMuted>
           </div>
 
