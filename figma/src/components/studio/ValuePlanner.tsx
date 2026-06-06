@@ -514,81 +514,112 @@ function IncentivesSection({ incentives, toggleIncentive, selectedIncentives }: 
         )}
       </div>
 
-      {renderGroup(incentives.filter((i) => i.kind === 'financial'))}
+      {renderGroup(incentives.filter((i) => i.kind === 'financial'), 'row')}
 
       {incentives.some((i) => i.kind === 'program') && (
         <div className="mt-8">
           <p className="text-[13px] font-semibold text-slate-500 mb-1">Programs & Resources</p>
           <p className="text-[12px] text-slate-400 mb-4">Not cash incentives, but laws, design programs, and rental options that lower your cost or risk.</p>
-          {renderGroup(incentives.filter((i) => i.kind === 'program'))}
+          {renderGroup(incentives.filter((i) => i.kind === 'program'), 'row')}
         </div>
       )}
     </div>
   );
 
-  function renderGroup(items: IncentiveProgram[]) {
+  function renderGroup(items: IncentiveProgram[], layout: 'grid' | 'row') {
     if (items.length === 0) {
-      return <p className="text-[12px] text-slate-400 py-2">No cash incentives confirmed for this address yet — we’ll follow up if any apply.</p>;
+      return (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-5">
+          <p className="text-[13px] font-medium text-slate-600">No cash incentives confirmed for this address yet.</p>
+          <p className="text-[12px] text-slate-400 mt-0.5">Programs &amp; Resources below may still lower your cost — we’ll follow up if a grant or rebate applies.</p>
+        </div>
+      );
     }
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {items.map((incentive) => (
-            <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white flex flex-col overflow-hidden">
-              <div className="p-6 pb-0">
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="p-2 rounded-lg shrink-0 bg-slate-50 text-slate-400">
-                    {INCENTIVE_ICON_NODE[incentive.icon] || <Building2 className="w-5 h-5" />}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-[14px] font-medium text-slate-900">{incentive.title}</h4>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${tagStyles[incentive.tagColor]}`}>
-                        {incentive.tag}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-slate-400 uppercase tracking-wider">{incentive.source} · {incentive.amount}</span>
-                  </div>
-                </div>
-                <p className="text-[12px] leading-relaxed text-slate-400 mb-4">{incentive.description}</p>
-              </div>
-              {incentive.actionItems && incentive.actionItems.length > 0 && (
-                <div className="px-6 pb-0">
-                  <div className="border-t border-slate-100 pt-4">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Action Required</p>
-                    <ul className="space-y-2">
-                      {incentive.actionItems.map((item, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#2B7FFF]/40 mt-[5px] shrink-0" />
-                          <span className="text-[12px] text-slate-600 leading-snug">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-              <div className="p-6 pt-4 mt-auto">
-                {incentive.statusLabel && (
-                  <div className="mb-3">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${statusStyles[incentive.statusColor]}`}>
-                      {incentive.statusColor === 'emerald' && <CheckCircle2 className="w-3 h-3" />}
-                      {incentive.statusColor === 'blue' && <FileText className="w-3 h-3" />}
-                      {incentive.statusLabel}
-                    </span>
-                  </div>
-                )}
-                {incentive.buttonVariant === 'primary' ? (
-                  <button onClick={handleUploadClick} className="w-full py-2.5 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm">
-                    <Upload className="w-3.5 h-3.5" /> {incentive.buttonLabel}
-                  </button>
-                ) : (
-                  <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="w-full py-2.5 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 no-underline">
-                    {incentive.buttonLabel} <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
+
+    const Card = (incentive: IncentiveProgram) => {
+      const actionBlock = incentive.actionItems && incentive.actionItems.length > 0 ? (
+        <div>
+          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2.5">Action Required</p>
+          <ul className="space-y-2">
+            {incentive.actionItems.map((item, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#2B7FFF]/40 mt-[5px] shrink-0" />
+                <span className="text-[12px] text-slate-600 leading-snug">{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null;
+
+      const statusChip = incentive.statusLabel ? (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${statusStyles[incentive.statusColor]}`}>
+          {incentive.statusColor === 'emerald' && <CheckCircle2 className="w-3 h-3" />}
+          {incentive.statusColor === 'blue' && <FileText className="w-3 h-3" />}
+          {incentive.statusLabel}
+        </span>
+      ) : null;
+
+      const button = incentive.buttonVariant === 'primary' ? (
+        <button onClick={handleUploadClick} className="py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm">
+          <Upload className="w-3.5 h-3.5" /> {incentive.buttonLabel}
+        </button>
+      ) : (
+        <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 no-underline">
+          {incentive.buttonLabel} <ExternalLink className="w-3 h-3" />
+        </a>
+      );
+
+      const header = (
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg shrink-0 bg-slate-50 text-slate-400">
+            {INCENTIVE_ICON_NODE[incentive.icon] || <Building2 className="w-5 h-5" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-[14px] font-medium text-slate-900">{incentive.title}</h4>
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${tagStyles[incentive.tagColor]}`}>
+                {incentive.tag}
+              </span>
             </div>
-        ))}
-      </div>
-    );
+            <span className="text-[11px] text-slate-400 uppercase tracking-wider">{incentive.source} · {incentive.amount}</span>
+          </div>
+        </div>
+      );
+
+      if (layout === 'row') {
+        return (
+          <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white p-6 flex flex-col md:flex-row md:items-start gap-5">
+            <div className="md:flex-1 min-w-0">
+              {header}
+              <p className="text-[12px] leading-relaxed text-slate-400 mt-3">{incentive.description}</p>
+            </div>
+            {actionBlock && <div className="md:w-72 md:border-l md:border-slate-100 md:pl-5">{actionBlock}</div>}
+            <div className="md:w-48 flex flex-col gap-3 md:items-end shrink-0">
+              {statusChip}
+              {button}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div key={incentive.id} className="rounded-2xl border border-slate-200 bg-white flex flex-col overflow-hidden">
+          <div className="p-6 pb-0">
+            {header}
+            <p className="text-[12px] leading-relaxed text-slate-400 mt-3 mb-4">{incentive.description}</p>
+          </div>
+          {actionBlock && <div className="px-6 pb-0"><div className="border-t border-slate-100 pt-4">{actionBlock}</div></div>}
+          <div className="p-6 pt-4 mt-auto">
+            {statusChip && <div className="mb-3">{statusChip}</div>}
+            <div className="[&>*]:w-full">{button}</div>
+          </div>
+        </div>
+      );
+    };
+
+    if (layout === 'row') {
+      return <div className="space-y-4">{items.map(Card)}</div>;
+    }
+    return <div className="grid grid-cols-1 md:grid-cols-3 gap-4">{items.map(Card)}</div>;
   }
 }
