@@ -374,6 +374,16 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
           zip: zipMatch ? zipMatch[zipMatch.length - 1] : null,
           goal: selectedGoal || null,
           financialPath: selectedGoal === 'personal' ? 'buyout' : 'freeBuild',
+          // feasibility result from the Site & Feasibility check
+          feasible: (() => {
+            const fits = feasibilityLookup?.computed?.aduFits;
+            if (Array.isArray(fits)) return fits.some((x: any) => x?.canFit);
+            return feasibilityLookup?.computed?.buildableArea ? true : null;
+          })(),
+          zoning: feasibilityLookup?.aiParcelInfo?.zoning ?? null,
+          lotArea: feasibilityLookup?.aiParcelInfo?.lotArea != null ? String(feasibilityLookup.aiParcelInfo.lotArea) : null,
+          existingUnits: typeof feasibilityLookup?.aiParcelInfo?.existingUnits === 'number' ? feasibilityLookup.aiParcelInfo.existingUnits : null,
+          recommendedAdu: 'Detached ADU',
         }),
       }).catch(() => {});
     } catch { /* non-blocking */ }
