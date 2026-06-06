@@ -160,30 +160,6 @@ export function FreeBuildSection(props: FreeBuildSectionProps) {
               </div>
             </div>
             <BodyMuted className="mt-2 text-[11px]">
-              Capital fully funded by XBuild. Buyback based on deployed capital.
-            </BodyMuted>
-          </div>
-
-          {/* Income assumptions + split schedule */}
-          <div>
-            <SubsectionLabel className="mb-3">Income Assumptions</SubsectionLabel>
-            <div className="space-y-2">
-              <div className="flex justify-between py-1"><span className="text-[13px] text-slate-500">Benchmark Rent</span><span className="text-[13px] font-bold tabular-nums text-slate-700">{formatCurrency(rentEstimate.rent)} / mo</span></div>
-              <div className="flex justify-between py-1"><span className="text-[13px] text-slate-500">Rent Growth</span><span className="text-[13px] font-bold tabular-nums text-slate-700">{(rentGrowthRatePct * 100).toFixed(0)}% / yr (est.)</span></div>
-              <div className="flex justify-between py-1"><span className="text-[13px] text-slate-500">Vacancy</span><span className="text-[13px] font-bold tabular-nums text-slate-700">{(vacancyRatePct * 100).toFixed(0)}% (est.)</span></div>
-              <div className="flex justify-between py-1"><span className="text-[13px] text-slate-500">Management · Insurance · Maintenance</span><span className="text-[13px] font-bold tabular-nums text-slate-700">{(managementFeePct * 100).toFixed(0)}% · {formatCurrency(monthlyInsurance)} · {formatCurrency(monthlyMaintenance)}</span></div>
-            </div>
-            <SubsectionLabel className="mt-4 mb-2">Revenue Split (locked at signing)</SubsectionLabel>
-            <div className="space-y-1.5">
-              <div className="flex justify-between py-0.5"><span className="text-[12px] text-slate-500">Year 1–3 · Capital recovery</span><span className="text-[12px] font-bold tabular-nums text-slate-700">You 30% · XBuild 70%</span></div>
-              <div className="flex justify-between py-0.5"><span className="text-[12px] text-slate-500">Year 4–5 · Profit phase</span><span className="text-[12px] font-bold tabular-nums text-slate-700">You 40% · XBuild 60%</span></div>
-              <div className="flex justify-between py-0.5"><span className="text-[12px] text-slate-500">Year 6+ · Long-term partnership</span><span className="text-[12px] font-bold tabular-nums text-slate-700">You 60% · XBuild 40%</span></div>
-              <div className="flex justify-between py-0.5">
-                <span className="text-[12px] text-slate-500">After XBuild reaches {RETURN_CAP_MULTIPLE}x operating cap</span>
-                <span className="text-[12px] font-bold tabular-nums text-emerald-600">You {Math.round(POST_CAP_OWNER_PCT * 100)}%</span>
-              </div>
-            </div>
-            <BodyMuted className="mt-2 text-[11px]">
               Net income = rent − vacancy − management − insurance − maintenance, then split. Buyback is an asset sale: delivered capital + 10% completion premium, appreciating 4%/yr — buying earlier locks a lower price. The {RETURN_CAP_MULTIPLE}x cap applies to XBuild's operating share.
             </BodyMuted>
           </div>
