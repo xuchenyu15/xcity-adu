@@ -34,9 +34,50 @@ function mapsLink(lat?: number | null, lng?: number | null) {
 }
 const fmtMoney = (n?: number) => (n ? '$' + n.toLocaleString() : '—');
 
-function Photo({ s }: { s: OwnerSubmission }) {
-  const [mly, setMly] = React.useState<string | null>(null);
-  React.useEffect(() => {
+const fmtDate = (s: string) => { try { return new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return s; } };
+const feasBadge = (f?: boolean | null) => f === true
+  ? <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">Feasible</span>
+  : f === false ? <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-500">Not feasible</span>
+  : <span className="text-slate-300">—</span>;
+const pathBadge = (p?: string) => p
+  ? <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${p === 'freeBuild' ? 'bg-emerald-50 text-emerald-600' : 'bg-[#2B7FFF]/8 text-[#2B7FFF]'}`}>{p === 'freeBuild' ? 'Free Build' : 'Self-Funded'}</span>
+  : null;
+
+// ── APN (King County tax-parcel number) by lat/lng ────────────────────────────
+// Client-side point query against King County's public parcel layer. Runs from
+// the admin's browser, so it isn't subject to the datacenter-IP blocks the
+// backend hits. Returns the 10-digit PIN formatted MAJOR-MINOR.
+async function fetchApn(lat: number, lng: number): Promise<string | null> {
+  const geom = encodeURIComponent(JSON.stringify({ x: lng, y: lat, spatialReference: { wkid: 4326 } }));
+  const url = `https://services.arcgis.com/ZOyb2t4B0UYuYNYH/arcgis/rest/services/Parcel_Boundary/FeatureServer/0/query?geometry=${geom}&geometryType=esriGeometryPoint&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=PIN&returnGeometry=false&f=json`;
+  const r = await fetch(url);
+  if (!r.ok) return null;
+  const j = await r.json();
+  const pin = j?.features?.[0]?.attributes?.PIN;
+  if (!pin) return null;
+  const s = String(pin).replace(/\D/g, '').padStart(10, '0');
+  return s.length === 10 ? `${s.slice(0, 6)}-${s.slice(6)}` : s;
+}
+
+// ── Finish-color recommendation from the street-view photo ────────────────────
+// Sample the centre band of the façade photo (skip sky/road), average its
+// brightness, and recommend a finish: light house → white, dark → black,
+// everything in between → wood.
+type Finish = { label: string; hex: string; text: string };
+function classifyFinish(lum: number): Finish {
+  if (lum >= 165) return { label: 'White', hex: '#f1f5f9', text: '#0f172a' };
+  if (lum <= 95) return { label: 'Black', hex: '#1e293b', text: '#f8fafc' };
+  return { label: 'Wood', hex: '#a16207', text: '#fff7ed' };
+}
+
+// ── One submission row (photo + APN + finish are derived client-side) ──────────
+function Row({ s }: { s: OwnerSubmission }) {
+  const [mly, setMly] = useState<string | null>(null);
+  const [finish, setFinish] = useState<Finish | null>(null);
+  const [apn, setApn] = useState<string | null | undefined>(undefined); // undefined = loading
+
+  // Street-view photo (Mapillary via backend proxy)
+  useEffect(() => {
     if (!s.lat || !s.lng) return;
     let cancelled = false;
     const base = (import.meta as any).env?.VITE_API_BASE_URL ?? '';
@@ -47,17 +88,90 @@ function Photo({ s }: { s: OwnerSubmission }) {
     return () => { cancelled = true; };
   }, [s.lat, s.lng]);
 
-  const sv = streetViewImg(s.lat, s.lng);              // Google (if VITE key set)
-  const aerial = aerialImg(s.lat, s.lng);              // keyless Esri aerial fallback
-  const src = mly || sv || aerial;                     // Mapillary street view > Google > aerial
+  // APN lookup
+  useEffect(() => {
+    if (!s.lat || !s.lng) { setApn(null); return; }
+    let cancelled = false;
+    fetchApn(s.lat, s.lng)
+      .then((p) => { if (!cancelled) setApn(p); })
+      .catch(() => { if (!cancelled) setApn(null); });
+    return () => { cancelled = true; };
+  }, [s.lat, s.lng]);
+
+  const sv = streetViewImg(s.lat, s.lng); // Google (if VITE key set)
+  const aerial = aerialImg(s.lat, s.lng); // keyless Esri aerial fallback
+  const src = mly || sv || aerial;        // Mapillary street view > Google > aerial
   const link = streetViewLink(s.lat, s.lng) || mapsLink(s.lat, s.lng);
   const isStreet = !!(mly || sv);
-  if (src && link) return (
+  const useCors = !!mly && src === mly;   // fbcdn thumbnails are CORS-readable
+
+  const onImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    try {
+      const img = e.currentTarget;
+      const w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) return;
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const ctx = c.getContext('2d'); if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      const x0 = Math.floor(w * 0.30), x1 = Math.floor(w * 0.70);
+      const y0 = Math.floor(h * 0.45), y1 = Math.floor(h * 0.72);
+      const data = ctx.getImageData(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0)).data;
+      let sum = 0, n = 0;
+      for (let i = 0; i < data.length; i += 4) { sum += 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]; n++; }
+      if (n) setFinish(classifyFinish(sum / n));
+    } catch { /* tainted canvas — leave finish unset */ }
+  };
+
+  const photo = src && link ? (
     <a href={link} target="_blank" rel="noopener noreferrer" title={isStreet ? 'Street-level view' : 'Aerial view'}>
-      <img src={src} alt={isStreet ? 'street view' : 'aerial'} loading="lazy" className="w-16 h-12 object-cover rounded-md border border-slate-200" />
+      <img
+        src={src}
+        crossOrigin={useCors ? 'anonymous' : undefined}
+        onLoad={useCors ? onImgLoad : undefined}
+        alt={isStreet ? 'street view' : 'aerial'}
+        loading="lazy"
+        className="w-16 h-12 object-cover rounded-md border border-slate-200"
+      />
     </a>
+  ) : (
+    <div className="w-16 h-12 rounded-md border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300"><Home className="w-4 h-4" /></div>
   );
-  return <div className="w-16 h-12 rounded-md border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300"><Home className="w-4 h-4" /></div>;
+
+  const finishCell = finish ? (
+    <span className="inline-flex items-center gap-1.5">
+      <span className="w-3.5 h-3.5 rounded-full border border-slate-200" style={{ background: finish.hex }} />
+      <span className="text-[12px] font-medium text-slate-600">{finish.label}</span>
+    </span>
+  ) : isStreet ? (
+    <span className="text-slate-300 text-[12px]">…</span>
+  ) : (
+    <span className="text-slate-300">—</span>
+  );
+
+  const apnCell = apn === undefined
+    ? <span className="text-slate-300 text-[12px]">…</span>
+    : apn
+      ? <span className="font-mono text-[12px] text-slate-600">{apn}</span>
+      : <span className="text-slate-300">—</span>;
+
+  return (
+    <tr className="border-b border-slate-100 hover:bg-slate-50/60">
+      <td className="px-4 py-3 text-[12px] text-slate-400 whitespace-nowrap">{fmtDate(s.createdAt)}</td>
+      <td className="px-4 py-3">{photo}</td>
+      <td className="px-4 py-3 text-[13px] text-slate-700">{s.email || <span className="text-slate-300">—</span>}</td>
+      <td className="px-4 py-3 text-[13px] font-medium text-slate-700">{s.address || <span className="text-slate-300">—</span>}</td>
+      <td className="px-4 py-3 whitespace-nowrap">{apnCell}</td>
+      <td className="px-4 py-3 text-[12px] text-slate-600">{s.recommendedAdu || 'Detached ADU'}</td>
+      <td className="px-4 py-3 text-[13px] font-bold text-slate-700 tabular-nums">{fmtMoney(s.rentEstimate)}{s.rentEstimate ? <span className="text-[10px] text-slate-400 font-normal">/mo</span> : null}</td>
+      <td className="px-4 py-3">{feasBadge(s.feasible)}</td>
+      <td className="px-4 py-3 text-[12px] text-slate-500">{s.zoning || '—'}</td>
+      <td className="px-4 py-3 whitespace-nowrap">{finishCell}</td>
+      <td className="px-4 py-3">{pathBadge(s.financialPath)}</td>
+      <td className="px-4 py-3">
+        {s.address && <a href={`https://gismaps.kingcounty.gov/parcelviewer2/?address=${encodeURIComponent(s.address)}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#2B7FFF]" title="King County GIS"><ExternalLink className="w-4 h-4" /></a>}
+      </td>
+    </tr>
+  );
 }
 
 export function AdminView({ onSignOut }: AdminViewProps) {
@@ -77,15 +191,6 @@ export function AdminView({ onSignOut }: AdminViewProps) {
       .finally(() => setLoading(false));
   };
   useEffect(() => { if (tab === 'submissions') load(); }, [tab]);
-
-  const fmtDate = (s: string) => { try { return new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return s; } };
-  const feasBadge = (f?: boolean | null) => f === true
-    ? <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">Feasible</span>
-    : f === false ? <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-500">Not feasible</span>
-    : <span className="text-slate-300">—</span>;
-  const pathBadge = (p?: string) => p
-    ? <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${p === 'freeBuild' ? 'bg-emerald-50 text-emerald-600' : 'bg-[#2B7FFF]/8 text-[#2B7FFF]'}`}>{p === 'freeBuild' ? 'Free Build' : 'Self-Funded'}</span>
-    : null;
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans">
@@ -134,29 +239,13 @@ export function AdminView({ onSignOut }: AdminViewProps) {
                   <table className="w-full border-collapse">
                     <thead className="bg-slate-50">
                       <tr className="border-b border-slate-200">
-                        {['Submitted', 'Photo', 'Owner email', 'Address', 'ADU type', 'Est. rent', 'Feasible', 'Zoning', 'Lot area', 'Path', 'Links'].map((h) => (
+                        {['Submitted', 'Photo', 'Owner email', 'Address', 'APN', 'ADU type', 'Est. rent', 'Feasible', 'Zoning', 'Finish', 'Path', 'Links'].map((h) => (
                           <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {subs.map((s) => (
-                        <tr key={s.id} className="border-b border-slate-100 hover:bg-slate-50/60">
-                          <td className="px-4 py-3 text-[12px] text-slate-400 whitespace-nowrap">{fmtDate(s.createdAt)}</td>
-                          <td className="px-4 py-3"><Photo s={s} /></td>
-                          <td className="px-4 py-3 text-[13px] text-slate-700">{s.email || <span className="text-slate-300">—</span>}</td>
-                          <td className="px-4 py-3 text-[13px] font-medium text-slate-700">{s.address || <span className="text-slate-300">—</span>}</td>
-                          <td className="px-4 py-3 text-[12px] text-slate-600">{s.recommendedAdu || 'Detached ADU'}</td>
-                          <td className="px-4 py-3 text-[13px] font-bold text-slate-700 tabular-nums">{fmtMoney(s.rentEstimate)}{s.rentEstimate ? <span className="text-[10px] text-slate-400 font-normal">/mo</span> : null}</td>
-                          <td className="px-4 py-3">{feasBadge(s.feasible)}</td>
-                          <td className="px-4 py-3 text-[12px] text-slate-500">{s.zoning || '—'}</td>
-                          <td className="px-4 py-3 text-[12px] text-slate-500 tabular-nums">{s.lotArea ? `${s.lotArea} sqft` : '—'}</td>
-                          <td className="px-4 py-3">{pathBadge(s.financialPath)}</td>
-                          <td className="px-4 py-3">
-                            {s.address && <a href={`https://gismaps.kingcounty.gov/parcelviewer2/?address=${encodeURIComponent(s.address)}`} target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#2B7FFF]" title="King County GIS"><ExternalLink className="w-4 h-4" /></a>}
-                          </td>
-                        </tr>
-                      ))}
+                      {subs.map((s) => <Row key={s.id} s={s} />)}
                     </tbody>
                   </table>
                 </div>

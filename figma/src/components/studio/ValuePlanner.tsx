@@ -259,7 +259,7 @@ export function ValuePlanner({ theme = 'light', buildIntent, address, onAction, 
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════ */}
-        {/* SECTION 1: DETACHED ADU ROI CALCULATOR                           */}
+        {/* SECTION 1: DETACHED ADU ROI CALCULATOR */}
         {/* ═══════════════════════════════════════════════════════════════════ */}
         <div className="mb-12">
           <div className="flex items-center gap-3 mb-4">
@@ -346,8 +346,6 @@ export function ValuePlanner({ theme = 'light', buildIntent, address, onAction, 
         </div>
 
         <div className="h-px bg-slate-200/60 mb-12" />
-
-
 
         {/* ─── 4. INCENTIVE REVIEW SUMMARY ─── */}
         <div className="mb-12">
@@ -513,7 +511,9 @@ function IncentivesSection({ incentives }: IncentivesSectionProps) {
 
   function Card(incentive: IncentiveProgram) {
     const isOpen = openId === incentive.id;
-    const hasIntake = !!incentive.intake;
+    // Financial programs always open an eligibility form (upload at minimum);
+    // laws / resources open an info panel.
+    const hasIntake = incentive.kind === 'financial' || !!incentive.intake;
     const files = filesById[incentive.id] || [];
     const isSubmitted = !!submitted[incentive.id];
 
@@ -539,19 +539,22 @@ function IncentivesSection({ incentives }: IncentivesSectionProps) {
       </span>
     ) : null;
 
-    const button = hasIntake ? (
+    // Every card toggles an inline panel — no button navigates straight to a
+    // third-party site. Financial programs open an eligibility form; laws /
+    // resources open an info panel that keeps the official link contained inside.
+    const button = (
       <button
         onClick={() => setOpenId(isOpen ? null : incentive.id)}
         className={`py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 ${
-          isOpen ? 'bg-slate-100 text-slate-600 border border-slate-200' : 'bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm'
+          isOpen
+            ? 'bg-slate-100 text-slate-600 border border-slate-200'
+            : hasIntake
+              ? 'bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm'
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300'
         }`}
       >
         {isOpen ? 'Close' : incentive.buttonLabel} <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-    ) : (
-      <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="py-2.5 px-4 rounded-xl font-medium text-[13px] transition-all cursor-pointer flex items-center justify-center gap-2 bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 no-underline">
-        {incentive.buttonLabel} <ExternalLink className="w-3 h-3" />
-      </a>
     );
 
     return (
@@ -579,64 +582,89 @@ function IncentivesSection({ incentives }: IncentivesSectionProps) {
           </div>
         </div>
 
-        {isOpen && hasIntake && (
+        {isOpen && (
           <div className="border-t border-slate-100 p-6 bg-slate-50/50">
-            {isSubmitted ? (
-              <div className="flex items-center gap-2 text-[13px] text-emerald-600 font-medium">
-                <CheckCircle2 className="w-4 h-4" /> Submitted for review — we’ll confirm your eligibility for {incentive.title}.
-              </div>
-            ) : (
-              <>
-                <p className="text-[13px] font-semibold text-slate-700 mb-1">Check eligibility for {incentive.title}</p>
-                <p className="text-[12px] text-slate-400 mb-4">
-                  Provide the details and documents this program requires. {incentive.url && (
-                    <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="text-[#2B7FFF] no-underline">View official program ↗</a>
-                  )}
-                </p>
+            {hasIntake ? (
+              isSubmitted ? (
+                <div className="flex items-center gap-2 text-[13px] text-emerald-600 font-medium">
+                  <CheckCircle2 className="w-4 h-4" /> Submitted for review — we’ll confirm your eligibility for {incentive.title}.
+                </div>
+              ) : (
+                <>
+                  <p className="text-[13px] font-semibold text-slate-700 mb-1">Check eligibility for {incentive.title}</p>
+                  <p className="text-[12px] text-slate-400 mb-4">
+                    Provide the details and documents this program requires. {incentive.url && (
+                      <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="text-[#2B7FFF] no-underline">View official program ↗</a>
+                    )}
+                  </p>
 
-                {incentive.intake?.fields && incentive.intake.fields.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                    {incentive.intake.fields.map((f, idx) => (
-                      <div key={idx}>
-                        <label className="block text-[12px] text-slate-500 mb-1">{f.label}</label>
-                        <input type={f.type || 'text'} className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-[13px] text-slate-700" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[12px] text-slate-500">{incentive.intake?.uploadLabel || 'Upload supporting documents'}</label>
-                    <button onClick={() => triggerUpload(incentive.id)} className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer">
-                      <UploadCloud className="w-3.5 h-3.5" /> Upload
-                    </button>
-                  </div>
-                  {files.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {files.map((file, i) => (
-                        <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200 min-w-[180px]">
-                          <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <div className="min-w-0">
-                            <p className="text-[12px] font-medium text-slate-700 truncate">{file.name}</p>
-                            <p className="text-[10px] text-slate-400">{file.size} · {file.date}</p>
-                          </div>
-                          <button onClick={() => removeFile(incentive.id, file.name)} className="p-1 rounded-full text-slate-400 hover:bg-slate-100"><X className="w-3 h-3" /></button>
+                  {incentive.intake?.fields && incentive.intake.fields.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                      {incentive.intake.fields.map((f, idx) => (
+                        <div key={idx}>
+                          <label className="block text-[12px] text-slate-500 mb-1">{f.label}</label>
+                          <input type={f.type || 'text'} className="w-full px-3 py-2 rounded-lg bg-white border border-slate-200 text-[13px] text-slate-700" />
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-[12px] text-slate-400">No documents uploaded yet.</p>
                   )}
-                </div>
 
-                <button
-                  onClick={() => setSubmitted(prev => ({ ...prev, [incentive.id]: true }))}
-                  className="py-2.5 px-5 rounded-xl font-medium text-[13px] bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm cursor-pointer"
-                >
-                  Submit for Review
-                </button>
-              </>
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-[12px] text-slate-500">{incentive.intake?.uploadLabel || 'Upload supporting documents'}</label>
+                      <button onClick={() => triggerUpload(incentive.id)} className="px-3 py-1.5 rounded-lg text-[12px] font-medium bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer">
+                        <UploadCloud className="w-3.5 h-3.5" /> Upload
+                      </button>
+                    </div>
+                    {files.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {files.map((file, i) => (
+                          <div key={i} className="flex items-center gap-2 px-3 py-2 bg-white rounded-lg border border-slate-200 min-w-[180px]">
+                            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-[12px] font-medium text-slate-700 truncate">{file.name}</p>
+                              <p className="text-[10px] text-slate-400">{file.size} · {file.date}</p>
+                            </div>
+                            <button onClick={() => removeFile(incentive.id, file.name)} className="p-1 rounded-full text-slate-400 hover:bg-slate-100"><X className="w-3 h-3" /></button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-[12px] text-slate-400">No documents uploaded yet.</p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setSubmitted(prev => ({ ...prev, [incentive.id]: true }))}
+                    className="py-2.5 px-5 rounded-xl font-medium text-[13px] bg-[#2B7FFF] text-white hover:bg-blue-600 shadow-sm cursor-pointer"
+                  >
+                    Submit for Review
+                  </button>
+                </>
+              )
+            ) : (
+              <div>
+                <p className="text-[13px] font-semibold text-slate-700 mb-1">About {incentive.title}</p>
+                <p className="text-[12px] text-slate-500 leading-relaxed mb-3">{incentive.description}</p>
+                {incentive.actionItems && incentive.actionItems.length > 0 && (
+                  <>
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Key points</p>
+                    <ul className="space-y-1.5 mb-3">
+                      {incentive.actionItems.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-[#2B7FFF]/40 mt-[5px] shrink-0" />
+                          <span className="text-[12px] text-slate-600 leading-snug">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {incentive.url && (
+                  <a href={incentive.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] font-medium text-[#2B7FFF] no-underline">
+                    View official program page <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
             )}
           </div>
         )}
