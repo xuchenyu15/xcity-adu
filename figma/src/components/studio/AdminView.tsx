@@ -6,7 +6,9 @@ interface AdminViewProps { onSignOut: () => void; }
 
 interface OwnerSubmission {
   id: string; email?: string; address?: string; zip?: string;
-  goal?: string; financialPath?: string; rentEstimate?: number; createdAt: string;
+  goal?: string; financialPath?: string; rentEstimate?: number;
+  feasible?: boolean | null; zoning?: string; lotArea?: string; existingUnits?: number; recommendedAdu?: string;
+  createdAt: string;
 }
 
 export function AdminView({ onSignOut }: AdminViewProps) {
@@ -74,7 +76,7 @@ export function AdminView({ onSignOut }: AdminViewProps) {
                 <table className="w-full border-collapse">
                   <thead className="bg-slate-50">
                     <tr className="border-b border-slate-200">
-                      {['Submitted', 'Owner email', 'Address', 'ZIP', 'Goal', 'Path', 'Links'].map((h) => (
+                      {['Submitted', 'Owner email', 'Address', 'Feasible', 'Zoning', 'Lot area', 'Path', 'Links'].map((h) => (
                         <th key={h} className="px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500">{h}</th>
                       ))}
                     </tr>
@@ -85,8 +87,15 @@ export function AdminView({ onSignOut }: AdminViewProps) {
                         <td className="px-4 py-3 text-[12px] text-slate-400">{fmtDate(s.createdAt)}</td>
                         <td className="px-4 py-3 text-[13px] text-slate-700">{s.email || <span className="text-slate-300">—</span>}</td>
                         <td className="px-4 py-3 text-[13px] font-medium text-slate-700">{s.address || <span className="text-slate-300">—</span>}</td>
-                        <td className="px-4 py-3 text-[12px] text-slate-500 tabular-nums">{s.zip || '—'}</td>
-                        <td className="px-4 py-3 text-[12px] text-slate-500 capitalize">{s.goal || '—'}</td>
+                        <td className="px-4 py-3">
+                          {s.feasible === true ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-600">Feasible</span>
+                          ) : s.feasible === false ? (
+                            <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-500">Not feasible</span>
+                          ) : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-[12px] text-slate-500">{s.zoning || '—'}</td>
+                        <td className="px-4 py-3 text-[12px] text-slate-500 tabular-nums">{s.lotArea ? `${s.lotArea} sqft` : '—'}</td>
                         <td className="px-4 py-3">
                           {s.financialPath && (
                             <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${s.financialPath === 'freeBuild' ? 'bg-emerald-50 text-emerald-600' : 'bg-[#2B7FFF]/8 text-[#2B7FFF]'}`}>
