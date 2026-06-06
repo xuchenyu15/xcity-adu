@@ -35,13 +35,26 @@ function mapsLink(lat?: number | null, lng?: number | null) {
 const fmtMoney = (n?: number) => (n ? '$' + n.toLocaleString() : '—');
 
 function Photo({ s }: { s: OwnerSubmission }) {
-  const sv = streetViewImg(s.lat, s.lng);
-  const aerial = aerialImg(s.lat, s.lng);
+  const [mly, setMly] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    if (!s.lat || !s.lng) return;
+    let cancelled = false;
+    const base = (import.meta as any).env?.VITE_API_BASE_URL ?? '';
+    fetch(`${base}/api/streetview?lat=${s.lat}&lng=${s.lng}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (!cancelled && d?.url) setMly(d.url); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [s.lat, s.lng]);
+
+  const sv = streetViewImg(s.lat, s.lng);              // Google (if VITE key set)
+  const aerial = aerialImg(s.lat, s.lng);              // keyless Esri aerial fallback
+  const src = mly || sv || aerial;                     // Mapillary street view > Google > aerial
   const link = streetViewLink(s.lat, s.lng) || mapsLink(s.lat, s.lng);
-  const src = sv || aerial; // street view if a key is set, else keyless aerial
+  const isStreet = !!(mly || sv);
   if (src && link) return (
-    <a href={link} target="_blank" rel="noopener noreferrer" title={sv ? 'Open Street View' : 'Open in Maps'}>
-      <img src={src} alt={sv ? 'street view' : 'aerial'} loading="lazy" className="w-16 h-12 object-cover rounded-md border border-slate-200" />
+    <a href={link} target="_blank" rel="noopener noreferrer" title={isStreet ? 'Street-level view' : 'Aerial view'}>
+      <img src={src} alt={isStreet ? 'street view' : 'aerial'} loading="lazy" className="w-16 h-12 object-cover rounded-md border border-slate-200" />
     </a>
   );
   return <div className="w-16 h-12 rounded-md border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-300"><Home className="w-4 h-4" /></div>;
