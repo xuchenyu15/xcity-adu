@@ -8,6 +8,7 @@ import usaMapBg from 'figma:asset/73c4731a32b6e0652ab16f2bc921df88ed3b255b.png';
 import brandLogo from 'figma:asset/8e75cc384b46734d4f787f64b6bf7366bdf087c9.png';
 import { useI18n } from '../../i18n';
 import { lookupAddress, geocodeAddress, suggestAddress } from '../../api/address';
+import { getEstimatedRentForAddress } from '../studio/detachedAduRoi';
 
 type PageState = 'initial' | 'searching' | 'locating' | 'residence-type' | 'eligible' | 'ready' | 'typology' | 'ineligible' | 'needs-review' | 'not-fitted';
 
@@ -42,6 +43,7 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
   const [state, setState] = useState<PageState>('initial');
   const [address, setAddress] = useState('');
   const [targetCity, setTargetCity] = useState<{ x: number; y: number; name: string } | null>(null);
+  const [geoLatLng, setGeoLatLng] = useState<{ lat: number; lng: number } | null>(null);
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [showNYWarning, setShowNYWarning] = useState(false);
   const [selectedTypology, setSelectedTypology] = useState<string | null>(null);
@@ -384,6 +386,14 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
           lotArea: feasibilityLookup?.aiParcelInfo?.lotArea != null ? String(feasibilityLookup.aiParcelInfo.lotArea) : null,
           existingUnits: typeof feasibilityLookup?.aiParcelInfo?.existingUnits === 'number' ? feasibilityLookup.aiParcelInfo.existingUnits : null,
           recommendedAdu: 'Detached ADU',
+          lat: geoLatLng?.lat ?? null,
+          lng: geoLatLng?.lng ?? null,
+          rentEstimate: (() => {
+            try {
+              const a = address || feasibilityLookup?.request?.address || '';
+              return a ? getEstimatedRentForAddress('Seattle', a, 'oneBed', 600).rent : null;
+            } catch { return null; }
+          })(),
         }),
       }).catch(() => {});
     } catch { /* non-blocking */ }
@@ -484,6 +494,8 @@ export function StartPage({ onComplete, onStateChange, shouldFocusInput }: { onC
               name: geoRes.name || geoRes.city || addr
             });
           }
+          const la = Number(geoRes?.lat), ln = Number(geoRes?.lon);
+          if (Number.isFinite(la) && Number.isFinite(ln)) setGeoLatLng({ lat: la, lng: ln });
         } catch {
         }
       })();
