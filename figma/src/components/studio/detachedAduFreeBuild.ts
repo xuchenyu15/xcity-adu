@@ -37,21 +37,6 @@ export const SPLIT_TIERS: SplitTier[] = [
 export const POST_CAP_OWNER_PCT = 0.70;  // once XBuild hits the 1.6x cap
 export const RETURN_CAP_MULTIPLE = 1.6;
 
-// Fixed buyback schedule (multiple of Total Delivered Investment X)
-export const BUYBACK_SCHEDULE: { year: number; factor: number }[] = [
-  { year: 0, factor: 1.30 },
-  { year: 1, factor: 1.08 },
-  { year: 2, factor: 1.07 },
-  { year: 3, factor: 1.06 },
-  { year: 4, factor: 1.05 },
-  { year: 5, factor: 1.04 },
-  { year: 6, factor: 1.03 },
-  { year: 7, factor: 1.02 },
-  { year: 8, factor: 1.03 },
-  { year: 9, factor: 1.04 },
-  { year: 10, factor: 1.05 },
-];
-
 export interface FreeBuildYear {
   year: number;
   netRevenue: number;        // annual net operating revenue (pre-split)
@@ -82,12 +67,6 @@ export function ownerShareForYear(year: number, capped: boolean, tierPcts?: [num
   if (year <= 3) return pcts[0];
   if (year <= 5) return pcts[1];
   return pcts[2];
-}
-
-export function buybackPrice(totalCapital: number, year: number): number {
-  const y = Math.max(0, Math.min(10, Math.round(year)));
-  const row = BUYBACK_SCHEDULE.find((r) => r.year === y) ?? BUYBACK_SCHEDULE[BUYBACK_SCHEDULE.length - 1];
-  return totalCapital * row.factor;
 }
 
 // ─── Asset-value buyback (股权式 · Market Schedule) ─────────────────────────

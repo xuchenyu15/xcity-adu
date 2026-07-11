@@ -248,32 +248,6 @@ const toIso = (x: number, y: number, z: number = 0) => {
     };
 };
 
-// Draw isometric box
-const drawIsoBox = (x: number, y: number, w: number, h: number, height: number) => {
-    const corners = [
-        toIso(x, y, 0),         // 0: bottom-near-left
-        toIso(x + w, y, 0),     // 1: bottom-near-right
-        toIso(x + w, y + h, 0), // 2: bottom-far-right
-        toIso(x, y + h, 0),     // 3: bottom-far-left
-        toIso(x, y, height),         // 4: top-near-left
-        toIso(x + w, y, height),     // 5: top-near-right
-        toIso(x + w, y + h, height), // 6: top-far-right
-        toIso(x, y + h, height),     // 7: top-far-left
-    ];
-
-    // Top face
-    const topPath = `M ${corners[4].x} ${corners[4].y} L ${corners[5].x} ${corners[5].y} L ${corners[6].x} ${corners[6].y} L ${corners[7].x} ${corners[7].y} Z`;
-    
-    // Front-right face (y=0 near side, appears on the right in iso view)
-    const frontPath = `M ${corners[0].x} ${corners[0].y} L ${corners[1].x} ${corners[1].y} L ${corners[5].x} ${corners[5].y} L ${corners[4].x} ${corners[4].y} Z`;
-    
-    // Left face (x=0 side, appears on the left in iso view)
-    const sidePath = `M ${corners[0].x} ${corners[0].y} L ${corners[3].x} ${corners[3].y} L ${corners[7].x} ${corners[7].y} L ${corners[4].x} ${corners[4].y} Z`;
-
-    return { topPath, frontPath, sidePath, corners };
-};
-
-
 export function SiteFeasibility({
   onNavigate,
   lookup,
@@ -388,11 +362,8 @@ export function SiteFeasibility({
   const structures: any[] = [];
   const structuresCount = Array.isArray(lookup?.subjectBuildings?.features) ? lookup.subjectBuildings.features.length : 0;
   const houseRectFt = undefined;
-  const garageRectFt = undefined;
   const hasHouse = false;
   const hasGarage = false;
-  const HOUSE_W_FT = 0;
-  const HOUSE_H_FT = 0;
   const HOUSE_W = 0;
   const HOUSE_H = 0;
   const HOUSE_X = LOT_X;
@@ -586,49 +557,6 @@ export function SiteFeasibility({
       a2 += pts[i].x * pts[j].y - pts[j].x * pts[i].y;
     }
     return Math.abs(a2 / 2);
-  };
-
-  const geoPolygonToOuterRingCanvas = (geom: any, opts?: { applyRotation?: boolean; rotationCenter?: 'map' | 'lot' }) => {
-    if (!bboxMercator || !geom) return null as Array<{ x: number; y: number }> | null;
-    const applyRotation = opts?.applyRotation === true;
-    const rot = opts?.rotationCenter === 'lot' ? rotateCanvasPoint3d : rotateCanvasPoint;
-
-    const ringToPts = (ring: any[]) => {
-      if (!Array.isArray(ring)) return null as Array<{ x: number; y: number }> | null;
-      const pts = ring
-        .map((pt: any) => {
-          const lon = Number(pt?.[0]);
-          const lat = Number(pt?.[1]);
-          if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
-          const p = lonLatToCanvas(lon, lat);
-          if (!p) return null;
-          return applyRotation ? rot(p) : p;
-        })
-        .filter(Boolean) as Array<{ x: number; y: number }>;
-      return pts.length >= 3 ? pts : null;
-    };
-
-    if (geom.type === 'Polygon' && Array.isArray(geom.coordinates?.[0])) {
-      return ringToPts(geom.coordinates[0]);
-    }
-
-    if (geom.type === 'MultiPolygon' && Array.isArray(geom.coordinates)) {
-      let best: Array<{ x: number; y: number }> | null = null;
-      let bestA = 0;
-      for (const poly of geom.coordinates) {
-        if (!Array.isArray(poly) || !Array.isArray(poly?.[0])) continue;
-        const pts = ringToPts(poly[0]);
-        if (!pts) continue;
-        const a = polygonAreaAbs(pts);
-        if (a > bestA) {
-          bestA = a;
-          best = pts;
-        }
-      }
-      return best;
-    }
-
-    return null;
   };
 
   const geoPolygonToOuterRingsCanvas = (geom: any, opts?: { applyRotation?: boolean; rotationCenter?: 'map' | 'lot' }) => {
@@ -1358,7 +1286,6 @@ export function SiteFeasibility({
   const endRightOn = endAddon === 'end-right' || endAddon === 'end-both';
   const endLeftOn = endAddon === 'end-left' || endAddon === 'end-both';
   const endAddonCount = (endRightOn ? 1 : 0) + (endLeftOn ? 1 : 0);
-  const balconyLenFt = selectedModule.hFt;
   const projectedSqft = Math.round(
     selectedModule.sqft
       + endAddonCount * selectedModule.wFt * ADDON_FT
@@ -3187,111 +3114,6 @@ export function SiteFeasibility({
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!interactionMode) return;
-    
-    const pt = clientToSvg(e.clientX, e.clientY);
-    if (!pt) return;
-
-    const localPt = screenToMapLocal(pt);
-    const mouseX = localPt.x;
-    const mouseY = localPt.y;
-
-    if (interactionMode === 'move') {
-        // Calculate potential new position
-        let targetX = mouseX - dragOffsetRef.current.x;
-        let targetY = mouseY - dragOffsetRef.current.y;
-
-        const rot = aduState.rotation;
-        if (buildableAreaPolyScreen) {
-          const fixed = constrainMoveCenter(aduState.cx, aduState.cy, targetX, targetY, rot, selectedBuildablePolyIdx);
-          if (fixed) {
-            if (Math.abs(fixed.cx - targetX) > 1e-6 || Math.abs(fixed.cy - targetY) > 1e-6) {
-              dragOffsetRef.current = { x: mouseX - fixed.cx, y: mouseY - fixed.cy };
-            }
-            setAduState(s => ({ ...s, cx: fixed.cx, cy: fixed.cy }));
-          }
-        } else {
-          const corners = getCorners(targetX, targetY, MAIN_W, MAIN_H, rot);
-          let minPx = Infinity, maxPx = -Infinity, minPy = Infinity, maxPy = -Infinity;
-          for (const p of corners) {
-            minPx = Math.min(minPx, p.x);
-            maxPx = Math.max(maxPx, p.x);
-            minPy = Math.min(minPy, p.y);
-            maxPy = Math.max(maxPy, p.y);
-          }
-          const envLeft = ZONE_LEFT + ZONE_VISUAL_INSET;
-          const envRight = ZONE_RIGHT - ZONE_VISUAL_INSET;
-          const envTop = ZONE_TOP + ZONE_VISUAL_INSET;
-          const envBottom = ZONE_BOTTOM - ZONE_VISUAL_INSET;
-          if (minPx < envLeft) targetX += (envLeft - minPx);
-          if (maxPx > envRight) targetX -= (maxPx - envRight);
-          if (minPy < envTop) targetY += (envTop - minPy);
-          if (maxPy > envBottom) targetY -= (maxPy - envBottom);
-
-          if (checkValidity(targetX, targetY, rot)) {
-            setAduState(s => ({ ...s, cx: targetX, cy: targetY }));
-          } else {
-            if (checkValidity(targetX, aduState.cy, rot)) {
-              setAduState(s => ({ ...s, cx: targetX }));
-            } else if (checkValidity(aduState.cx, targetY, rot)) {
-              setAduState(s => ({ ...s, cy: targetY }));
-            }
-          }
-        }
-
-    } else if (interactionMode === 'rotate') {
-        // Calculate angle from center to mouse
-        const dx = mouseX - aduState.cx;
-        const dy = mouseY - aduState.cy;
-        let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-        
-        // The handle starts at a specific offset. 
-        // Usually rotation handles work better if we track delta, but absolute angle is fine if we consider offset.
-        // Let's assume handle is at 0 deg relative to center?
-        // Actually, the handle visually is at Top Right corner or similar.
-        // Let's just track the raw angle and apply offset based on initial click or just use raw angle if handle is at 0.
-        // Simplified: The handle is visually at one corner. Let's make the handle dragging feel natural.
-        // Current handle is top-right? No, implementation details below.
-        
-        // Better Interaction: Dragging rotates the object such that the handle follows the mouse.
-        // Angle = angle(mouse - center).
-        // If handle is at, say, 45deg relative to center in local space, we subtract 45.
-        // Let's assume the handle is visually placed and we just want to follow the mouse.
-        
-        // Snapping
-        // Normalize angle to 0-360
-        let newRot = angle + 90 + 45; // Offset to match corner visual
-        // Actually, let's just use delta from start.
-        
-        // Simpler approach: Calculate angle of mouse relative to center.
-        // Initial angle of mouse relative to center.
-        // Delta angle.
-        // Apply to initial rotation.
-        
-        const startDx = dragStart.x - initialState.cx;
-        const startDy = dragStart.y - initialState.cy;
-        const startAngle = Math.atan2(startDy, startDx) * (180 / Math.PI);
-        
-        const currentAngle = Math.atan2(dy, dx) * (180 / Math.PI);
-        const delta = currentAngle - startAngle;
-        
-        let rawRot = initialState.rotation + delta;
-        
-        // Normalize
-        rawRot = (rawRot % 360 + 360) % 360;
-        
-        // Check Validity (no snapping)
-        if (checkValidity(aduState.cx, aduState.cy, rawRot, undefined, selectedBuildablePolyIdx)) {
-            setAduState(s => ({ ...s, rotation: rawRot }));
-        }
-    }
-  };
-
-  const handleMouseUp = () => {
-    setInteractionMode(null);
-  };
-
   // Use global document listeners for reliable drag tracking
   useEffect(() => {
     if (!interactionMode) return;
@@ -3373,7 +3195,6 @@ export function SiteFeasibility({
   }, [interactionMode, dragStart, initialState, aduState, includeDeck, selectedBuildablePolyIdx, buildableAreaPolyScreen, aduPlacementPolyScreen]);
 
   // derived values for rendering
-  const rotRad = (aduState.rotation * Math.PI) / 180;
   const aduScreen = mapLocalToScreen({ x: aduState.cx, y: aduState.cy });
 
   return (

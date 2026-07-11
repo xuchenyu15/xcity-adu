@@ -1,5 +1,5 @@
 import React from 'react';
-import { LogOut, User, Check } from 'lucide-react';
+import { LogOut, Check } from 'lucide-react';
 import logoImg from 'figma:asset/40642cc6a915787d4cd7d335bd5735be4239edc1.png';
 import logoDark from 'figma:asset/40642cc6a915787d4cd7d335bd5735be4239edc1.png';
 import studioLogo from 'figma:asset/927801a58617e03a2b71d9dc329dc83b38939418.png';

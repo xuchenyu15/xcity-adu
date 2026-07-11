@@ -513,6 +513,5 @@ export const PARCEL_INDEX: ParcelRow[] = [
 ];
 
 export function googleMapsLink(p: ParcelRow) { return `https://www.google.com/maps?q=${p.lat},${p.lng}`; }
-export function streetViewLink(p: ParcelRow) { return `https://www.google.com/maps?q=&layer=c&cbll=${p.lat},${p.lng}`; }
 export function kingCountyLink(p: ParcelRow) { return `https://gismaps.kingcounty.gov/parcelviewer2/?pin=${p.apn}`; }
 export function seattleGisLink(p: ParcelRow) { return `https://seattlecitygis.maps.arcgis.com/apps/webappviewer/index.html?id=f822b2c6498c4163b0cf908e2241e9c2&find=${encodeURIComponent(p.address)}`; }

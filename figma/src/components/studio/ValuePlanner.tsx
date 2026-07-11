@@ -83,48 +83,6 @@ function formatPct(r: number | null) {
   return `${(r * 100).toFixed(1)}%`;
 }
 
-function formatPayback(yrs: number | null) {
-  if (yrs === null || !isFinite(yrs) || yrs <= 0) return '—';
-  return `${yrs.toFixed(1)} yrs`;
-}
-
-// Slider with label
-function LabeledSlider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  display,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  display: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div>
-      <div className="flex justify-between mb-1">
-        <span className="text-[12px] text-slate-500">{label}</span>
-        <span className="text-[12px] font-semibold text-slate-800">{display}</span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-[#2B7FFF] h-1.5 rounded-full cursor-pointer"
-      />
-    </div>
-  );
-}
-
 export function ValuePlanner({ theme = 'light', buildIntent, address, onAction, onNavigate, onComplete }: ValuePlannerProps) {
   // ─── ROI Calculator State ───────────────────────────────────────────────────
   const city = 'Seattle';
