@@ -81,6 +81,7 @@ const stylesList: {id: StyleFilter, label: string}[] = [
 ];
 
 export function InteriorStudio({ onSwitchView, onConfirm, onNext }: InteriorStudioProps) {
+  const [viewMode, setViewMode] = useState<'flat' | 'panorama'>('flat');
   const [focusedRoom, setFocusedRoom] = useState<Room>('living');
   const [selections, setSelections] = useState({
     flooring: 'oak',
@@ -145,16 +146,42 @@ export function InteriorStudio({ onSwitchView, onConfirm, onNext }: InteriorStud
             <ArrowLeft className="w-4 h-4" /> Exterior View
           </button>
 
-          {/* Room Indicator - Exactly as Figma */}
-          <div className="pointer-events-auto bg-[rgba(15,23,43,0.8)] backdrop-blur-xl px-6 py-2 rounded-full flex items-center gap-3 border border-[rgba(255,255,255,0.1)] shadow-2xl">
-            <div className="w-2 h-2 bg-[#00d492] rounded-full animate-pulse shadow-[0_0_8px_#00d492]" />
-            <span className="text-white text-[12px] font-bold uppercase tracking-[1.2px]">Viewing: {focusedRoom}</span>
+          <div className="pointer-events-auto flex items-center gap-3">
+            {/* Flat / 360 View Toggle */}
+            <div className="flex items-center gap-1 p-1 rounded-full bg-[rgba(15,23,43,0.8)] backdrop-blur-xl border border-[rgba(255,255,255,0.1)] shadow-2xl">
+              <button
+                onClick={() => setViewMode('flat')}
+                className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.6px] transition-all ${
+                  viewMode === 'flat' ? 'bg-white text-slate-900' : 'text-white/60 hover:text-white'
+                }`}
+              >
+                Flat
+              </button>
+              <button
+                onClick={() => setViewMode('panorama')}
+                className={`px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-[0.6px] transition-all ${
+                  viewMode === 'panorama' ? 'bg-white text-slate-900' : 'text-white/60 hover:text-white'
+                }`}
+              >
+                360°
+              </button>
+            </div>
+
+            {/* Room Indicator - Exactly as Figma */}
+            <div className="bg-[rgba(15,23,43,0.8)] backdrop-blur-xl px-6 py-2 rounded-full flex items-center gap-3 border border-[rgba(255,255,255,0.1)] shadow-2xl">
+              <div className="w-2 h-2 bg-[#00d492] rounded-full animate-pulse shadow-[0_0_8px_#00d492]" />
+              <span className="text-white text-[12px] font-bold uppercase tracking-[1.2px]">Viewing: {focusedRoom}</span>
+            </div>
           </div>
         </div>
 
-        {/* Main View: 360 panorama, drag with mouse/touch to look around */}
+        {/* Main View: flat image, or 360 panorama (drag with mouse/touch to look around) */}
         <div className="absolute inset-0 z-0">
-          <PanoramaViewer panorama={displayRoomImage} />
+          {viewMode === 'panorama' ? (
+            <PanoramaViewer panorama={displayRoomImage} />
+          ) : (
+            <img src={displayRoomImage} className="w-full h-full object-cover" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[rgba(15,23,43,0.4)] via-transparent to-transparent opacity-60 pointer-events-none" />
         </div>
 
