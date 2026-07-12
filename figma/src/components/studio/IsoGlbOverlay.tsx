@@ -578,7 +578,7 @@ export function IsoGlbOverlay({
     const s = sceneRef.current;
     const c = cameraRef.current;
     if (r && s && c) r.render(s, c);
-  }, [enabled, canvasW, canvasH, isoSceneParams, orbitYawDeg, orbitPitchDeg, aduCenterLocal, aduRotationDeg, lotRotationDeg]);
+  }, [enabled, modelId, canvasW, canvasH, isoSceneParams, orbitYawDeg, orbitPitchDeg, aduCenterLocal, aduRotationDeg, lotRotationDeg]);
 
   useEffect(() => {
     if (!onPickApiChange) return;
