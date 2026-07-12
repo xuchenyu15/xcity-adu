@@ -1,6 +1,7 @@
 server-dotnet/XBuildApi/appsettings.Development.json
 server-dotnet/XBuildApi/appsettings.*.json
 server-dotnet/XBuildApi/appsettings.json
+server-dotnet/XBuildApi/App_Data/
 **/bin/
 **/obj/
 **/node_modules/
